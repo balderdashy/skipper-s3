@@ -119,11 +119,7 @@ module.exports = function SkipperS3 (globalOpts) {
     },
 
     rm: function (filepath, cb){
-      return fsx.unlink(filepath, function(err) {
-        // Ignore "doesn't exist" errors
-        if (err && err.code !== 'ENOENT') { return cb(err); }
-        else return cb();
-      });
+      return cb(new Error('TODO'));
     },
     ls: function (dirpath, cb) {
       var client = knox.createClient({
