@@ -10,7 +10,7 @@ var _ = require('lodash');
 _.defaultsDeep = require('merge-defaults');
 var knox = require('knox');
 var S3MultipartUpload = require('knox-mpu');
-
+var S3Lister = require('s3-lister');
 
 
 /**
@@ -126,7 +126,43 @@ module.exports = function SkipperS3 (globalOpts) {
       });
     },
     ls: function (dirpath, cb) {
-      return fsx.readdir(dirpath, cb);
+      var client = knox.createClient({
+        key: globalOpts.key,
+        secret: globalOpts.secret,
+        bucket: globalOpts.bucket
+      });
+
+      // TODO: take a look at maxKeys
+      // https://www.npmjs.org/package/s3-lister
+
+      // Allow empty dirpath
+      if (!dirpath) {
+        dirpath='/';
+      }
+      // Strip leading slash from dirpath to form prefix
+      var prefix = dirpath.replace(/^\//, '');
+
+      var lister = new S3Lister(client, {
+        prefix : prefix
+      });
+
+      if (!cb) {
+        return lister;
+      }
+      else {
+        var firedCb;
+        lister.once('error', function (err) {
+          if(firedCb)return;
+          firedCb=true;
+          cb(err);
+        });
+        lister.pipe(concat(function (data) {
+          if(firedCb)return;
+          firedCb=true;
+          cb(null, data);
+        }));
+        return lister;
+      }
     },
 
     receiver: S3Receiver,
