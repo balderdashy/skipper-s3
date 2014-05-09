@@ -120,6 +120,10 @@ module.exports = function SkipperS3 (globalOpts) {
     options = options || {};
     options = _.defaults(options, globalOpts);
 
+    var receiver__ = Writable({
+      objectMode: true
+    });
+
     // This `_write` method is invoked each time a new file is received
     // from the Readable stream (Upstream) which is pumping filestreams
     // into this receiver.  (filename === `__newFile.filename`).
