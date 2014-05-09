@@ -3,10 +3,11 @@
  */
 
 var path = require('path');
-var _ = require('lodash');
-_.defaultsDeep = require('merge-defaults');
 var Writable = require('stream').Writable;
 var Transform = require('stream').Transform;
+var concat = require('concat-stream');
+var _ = require('lodash');
+_.defaultsDeep = require('merge-defaults');
 var knox = require('knox');
 var S3MultipartUpload = require('knox-mpu');
 
@@ -48,9 +49,9 @@ module.exports = function SkipperS3 (globalOpts) {
       dirname: '/'
     });
 
-  return {
+  var adapter = {
 
-    get: function (filename) {
+    read: function (filename, cb) {
 
       // Determine location where file should be written:
       var dirPath = globalOpts.dirname;
@@ -68,8 +69,12 @@ module.exports = function SkipperS3 (globalOpts) {
         return callback(null, chunk);
       };
 
-
       client.get(filePath).on('response', function(s3res){
+        // Handle explicit s3res errors
+        s3res.once('error', function (err) {
+          __transform__.emit('error', err);
+        });
+
         // check whether we got an actual file stream:
         if (s3res.statusCode < 300) {
           s3res.pipe(__transform__);
@@ -84,7 +89,7 @@ module.exports = function SkipperS3 (globalOpts) {
             if (typeof chunk === 'string') body += chunk;
           });
           // Then build the error and emit it
-          s3res.on('end', function () {
+          s3res.once('end', function () {
             var err = new Error();
             err.status = s3res.statusCode;
             err.headers = s3res.headers;
@@ -96,15 +101,39 @@ module.exports = function SkipperS3 (globalOpts) {
       })
       .end();
 
+      if (cb) {
+        var firedCb = false;
+        __transform.once('error', function (err) {
+          if (firedCb) return;
+          firedCb = true;
+          cb(err);
+        });
+        __transform__.pipe(concat(function (data) {
+          if (firedCb) return;
+          firedCb = true;
+          cb(null, data);
+        }));
+      }
 
       return __transform__;
     },
-    rm: function (){throw new Error('todo');},
-    ls: function (){throw new Error('todo');},
+
+    rm: function (filepath, cb){
+      return fsx.unlink(filepath, function(err) {
+        // Ignore "doesn't exist" errors
+        if (err && err.code !== 'ENOENT') { return cb(err); }
+        else return cb();
+      });
+    },
+    ls: function (dirpath, cb) {
+      return fsx.readdir(dirpath, cb);
+    },
 
     receiver: S3Receiver,
     receive: S3Receiver
   };
+
+  return adapter;
 
   /**
    * A simple receiver for Skipper that writes Upstreams to
@@ -132,16 +161,11 @@ module.exports = function SkipperS3 (globalOpts) {
       // Garbage-collect the bytes that were already written for this file.
       // (called when a read or write error occurs)
       function gc(err) {
-        // console.log'************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
-
-        // TODO: cancel upload (or delete file from S3 if necessary)
-        // fsx.unlink(filePath, function(gcErr) {
-        //   // Ignore "doesn't exist" errors
-        //   if (gcErr) {
-        //     if (gcErr.code !== 'ENOENT') return next([err].concat([gcErr]));
-        //   }
-        //   return next(err);
-        // });
+        // console.log('************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
+        adapter.rm(filePath, function (gcErr) {
+          if (gcErr) return done([err].concat([gcErr]));
+          else return done();
+        });
       }
 
       // Determine location where file should be written:
@@ -191,8 +215,10 @@ module.exports = function SkipperS3 (globalOpts) {
     };
 
     return receiver__;
-
   }
+
+
+
 };
 
 

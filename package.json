@@ -33,6 +33,7 @@
     "fs-extra": "~0.8.1",
     "knox-mpu": "^0.1.6",
     "knox": "^0.8.9",
-    "merge-defaults": "^0.1.0"
+    "merge-defaults": "^0.1.0",
+    "concat-stream": "^1.4.5"
   }
 }
