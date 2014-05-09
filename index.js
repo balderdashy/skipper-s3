@@ -153,6 +153,7 @@ module.exports = function SkipperS3 (globalOpts) {
           cb(err);
         });
         lister.pipe(concat(function (data) {
+          console.log('______ DATA _______\n', data);
           if(firedCb)return;
           firedCb=true;
           cb(null, data);
@@ -204,7 +205,7 @@ module.exports = function SkipperS3 (globalOpts) {
       // -------------------------------------------------------
       var filePath, dirPath, filename;
       dirPath = options.dirname;
-      filename = options.saveAs(__newFile);
+      filename = options.filename || options.saveAs(__newFile);
       filePath = path.join(dirPath, filename);
       // -------------------------------------------------------
 
