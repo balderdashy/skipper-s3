@@ -2,10 +2,12 @@
  * Module dependencies
  */
 
-var Writable = require('stream').Writable;
-var fsx = require('fs-extra');
 var path = require('path');
 var _ = require('lodash');
+var Writable = require('stream').Writable;
+var knox = require('knox');
+var S3MultipartUpload = require('knox-mpu');
+var UUIDGenerator = require('node-uuid');
 
 
 
@@ -21,10 +23,8 @@ module.exports = function DiskStore (options) {
 
   return {
 
-    touch: function (){throw new Error('todo');},
     rm: function (){throw new Error('todo');},
     ls: function (){throw new Error('todo');},
-    write: function (){throw new Error('todo');},
 
     receiver: S3Receiver,
     receive: S3Receiver
@@ -61,73 +61,91 @@ function S3Receiver (options) {
       return __newFile.filename;
     },
 
+    // Max bytes (defaults to ~15MB)
+    maxBytes: 15000000,
+
+    // The bucket we're going to upload stuff into
+    // bucket: '',
+
+    // Our S3 API key
+    // key: '',
+
+    // Our S3 API secret
+    // secret: '',
+
     // By default, upload files to `/` (within the bucket)
     dirname: '/'
   });
 
+  var Writable = require('stream').Writable;
   var receiver__ = Writable({
     objectMode: true
   });
+
 
   // This `_write` method is invoked each time a new file is received
   // from the Readable stream (Upstream) which is pumping filestreams
   // into this receiver.  (filename === `__newFile.filename`).
   receiver__._write = function onFile(__newFile, encoding, done) {
 
-    // Determine location where file should be written:
-    // -------------------------------------------------------
-    var filePath, dirPath, filename;
-    if (options.id) {
-      // If `options.id` was specified, use it directly as the path.
-      filePath = options.id;
-      dirPath = path.dirname(filePath);
-      filename = path.basename(filePath);
-    }
-    else {
-      // Otherwise, use the more sophisiticated options:
-      dirPath = path.resolve(options.dirname);
-      filename = options.saveAs(__newFile);
-      filePath = path.join(dirPath, filename);
-    }
-    // -------------------------------------------------------
-
-
     // Garbage-collect the bytes that were already written for this file.
     // (called when a read or write error occurs)
     function gc(err) {
-      // console.log('************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
-      fsx.unlink(filePath, function(gcErr) {
-        // Ignore "doesn't exist" errors
-        if (gcErr) {
-          if (gcErr.code !== 'ENOENT') return done([err].concat([gcErr]));
-        }
-        return done(err);
-      });
+      // console.log'************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
+
+      // TODO: cancel upload (or delete file from S3 if necessary)
+      // fsx.unlink(filePath, function(gcErr) {
+      //   // Ignore "doesn't exist" errors
+      //   if (gcErr) {
+      //     if (gcErr.code !== 'ENOENT') return done([err].concat([gcErr]));
+      //   }
+      //   return done(err);
+      // });
     }
 
-    // Ensure necessary parent directories exist:
-    fsx.mkdirs(dirPath, function (mkdirsErr) {
-      // If we get an error here, it's probably because the Node
-      // user doesn't have write permissions at the designated
-      // path.
-      if (mkdirsErr) {
-        return done(mkdirsErr);
+    // Determine location where file should be written:
+    // -------------------------------------------------------
+    var filePath, dirPath, filename;
+    dirPath = path.resolve(options.dirname);
+    filename = options.saveAs(__newFile);
+    filePath = path.join(dirPath, filename);
+    // -------------------------------------------------------
+
+
+    console.log(('Receiver: Received file `' + __newFile.filename + '` from an Upstream.').grey);
+
+    var mpu = new S3MultipartUpload({
+      objectName: filePath,
+      stream: __newFile,
+      maxUploadSize: options.maxBytes,
+      client: knox.createClient({
+        key: options.apiKey,
+        secret: options.apiSecret,
+        bucket: options.bucket
+      })
+    }, function (err, body) {
+      if (err) {
+        console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
+        receiver__.emit('error', err);
+        return;
       }
 
-      var outs = fsx.createWriteStream(filePath, encoding);
-      __newFile.on('error', function (err) {
-        // console.log('***** READ error on file ' + __newFile.filename, '::', err);
-      });
-      outs.on('error', function failedToWriteFile(err) {
-        // console.log('Error on output stream- garbage collecting unfinished uploads...');
-        gc(err);
-      });
-      outs.on('finish', function successfullyWroteFile() {
-        done();
-      });
-      __newFile.pipe(outs);
+      // Package extra metadata about the S3 response on each file stream
+      // in case we decide we want to use it for something later
+      __newFile.extra = body;
+
+      console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
+      next();
     });
 
+    mpu.on('progress', function(data) {
+      receiver__.emit('progress', {
+        name: __newFile.filename,
+        written: data.written,
+        total: data.total,
+        percent: data.percent
+      });
+    });
   };
 
   return receiver__;
