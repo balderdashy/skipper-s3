@@ -6,6 +6,7 @@ var path = require('path');
 var _ = require('lodash');
 _.defaultsDeep = require('merge-defaults');
 var Writable = require('stream').Writable;
+var Transform = require('stream').Transform;
 var knox = require('knox');
 var S3MultipartUpload = require('knox-mpu');
 
@@ -18,39 +19,11 @@ var S3MultipartUpload = require('knox-mpu');
  * @return {Object}
  */
 
-module.exports = function DiskStore (globalOpts) {
+module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
-  return {
 
-    rm: function (){throw new Error('todo');},
-    ls: function (){throw new Error('todo');},
-
-    receiver: S3Receiver,
-    receive: S3Receiver
-  };
-
-  /**
-   * A simple receiver for Skipper that writes Upstreams to
-   * S3 to the configured bucket at the configured path.
-   *
-   * Includes a garbage-collection mechanism for failed
-   * uploads.
-   *
-   * @param  {Object} options
-   * @return {Stream.Writable}
-   */
-  function S3Receiver (options) {
-    options = options || {};
-    options = _.defaults(options, globalOpts);
-
-    // Normalize `saveAs()` option:
-    // options.saveAs() <==> options.rename() <==> options.getFilename() <==> options.getFileName()
-    options.saveAs = options.saveAs || options.rename;
-    options.saveAs = options.saveAs || options.getFileName;
-    options.saveAs = options.saveAs || options.getFilename;
-
-    _.defaults(options, {
+  _.defaults(globalOpts, {
 
       // By default, create new files on disk
       // using their uploaded filenames.
@@ -75,11 +48,77 @@ module.exports = function DiskStore (globalOpts) {
       dirname: '/'
     });
 
-    var Writable = require('stream').Writable;
-    var receiver__ = Writable({
-      objectMode: true
-    });
+  return {
 
+    get: function (filename) {
+
+      // Determine location where file should be written:
+      var dirPath = globalOpts.dirname;
+      var filePath = path.join(dirPath, filename);
+
+      var client = knox.createClient({
+        key: globalOpts.key,
+        secret: globalOpts.secret,
+        bucket: globalOpts.bucket
+      });
+
+      // Build a noop transform stream that will pump the S3 output through
+      var __transform__ = new Transform();
+      __transform__._transform = function (chunk, encoding, callback) {
+        return callback(null, chunk);
+      };
+
+
+      client.get(filePath).on('response', function(s3res){
+        // check whether we got an actual file stream:
+        if (s3res.statusCode < 300) {
+          s3res.pipe(__transform__);
+        }
+        // or an error:
+        else {
+          // Wait for the body of the error message to stream in:
+          var body = '';
+          s3res.setEncoding('utf8');
+          s3res.on('readable', function (){
+            var chunk = s3res.read();
+            if (typeof chunk === 'string') body += chunk;
+          });
+          // Then build the error and emit it
+          s3res.on('end', function () {
+            var err = new Error();
+            err.status = s3res.statusCode;
+            err.headers = s3res.headers;
+            err.message = 'Non-200 status code returned from S3 for requested file.';
+            if (body) err.message += ('\n'+body);
+            __transform__.emit('error', err);
+          });
+        }
+      })
+      .end();
+
+
+      return __transform__;
+    },
+    rm: function (){throw new Error('todo');},
+    ls: function (){throw new Error('todo');},
+
+    receiver: S3Receiver,
+    receive: S3Receiver
+  };
+
+  /**
+   * A simple receiver for Skipper that writes Upstreams to
+   * S3 to the configured bucket at the configured path.
+   *
+   * Includes a garbage-collection mechanism for failed
+   * uploads.
+   *
+   * @param  {Object} options
+   * @return {Stream.Writable}
+   */
+  function S3Receiver (options) {
+    options = options || {};
+    options = _.defaults(options, globalOpts);
 
     // This `_write` method is invoked each time a new file is received
     // from the Readable stream (Upstream) which is pumping filestreams
@@ -104,15 +143,15 @@ module.exports = function DiskStore (globalOpts) {
       // Determine location where file should be written:
       // -------------------------------------------------------
       var filePath, dirPath, filename;
-      dirPath = path.resolve(options.dirname);
+      dirPath = options.dirname;
       filename = options.saveAs(__newFile);
       filePath = path.join(dirPath, filename);
       // -------------------------------------------------------
 
 
-      console.log(('Receiver: Received file `' + __newFile.filename + '` from an Upstream.').grey);
+      // console.log(('Receiver: Received file `' + __newFile.filename + '` from an Upstream.').grey);
 
-      console.log('->',options);
+      // console.log('->',options);
       var mpu = new S3MultipartUpload({
         objectName: filePath,
         stream: __newFile,
@@ -124,7 +163,7 @@ module.exports = function DiskStore (globalOpts) {
         })
       }, function (err, body) {
         if (err) {
-          console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
+          // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
           receiver__.emit('error', err);
           return;
         }
@@ -133,7 +172,7 @@ module.exports = function DiskStore (globalOpts) {
         // in case we decide we want to use it for something later
         __newFile.extra = body;
 
-        console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
+        // console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
         next();
       });
 
