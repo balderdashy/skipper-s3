@@ -10,7 +10,7 @@ var _ = require('lodash');
 
 
 /**
- * skipper-disk
+ * skipper-s3
  *
  * @param  {Object} options
  * @return {Object}
@@ -26,8 +26,8 @@ module.exports = function DiskStore (options) {
     ls: function (){throw new Error('todo');},
     write: function (){throw new Error('todo');},
 
-    receiver: DiskReceiver,
-    receive: DiskReceiver
+    receiver: S3Receiver,
+    receive: S3Receiver
   };
 };
 
@@ -35,7 +35,7 @@ module.exports = function DiskStore (options) {
 
 /**
  * A simple receiver for Skipper that writes Upstreams to
- * disk at the configured path.
+ * S3 to the configured bucket at the configured path.
  *
  * Includes a garbage-collection mechanism for failed
  * uploads.
@@ -43,7 +43,7 @@ module.exports = function DiskStore (options) {
  * @param  {Object} options
  * @return {Stream.Writable}
  */
-function DiskReceiver (options) {
+function S3Receiver (options) {
   options = options || {};
 
   // Normalize `saveAs()` option:
@@ -61,8 +61,8 @@ function DiskReceiver (options) {
       return __newFile.filename;
     },
 
-    // By default, upload files to `./.tmp/uploads` (relative to cwd)
-    dirname: '.tmp/uploads'
+    // By default, upload files to `/` (within the bucket)
+    dirname: '/'
   });
 
   var receiver__ = Writable({
