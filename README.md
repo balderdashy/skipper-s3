@@ -1,9 +1,14 @@
-# [<img title="skipper-s3 - S3 adapter for Skipper" src="http://i.imgur.com/P6gptnI.png" width="200px" alt="skipper emblem - face of a ship's captain"/>](https://github.com/balderdashy/skipper-s3) Disk Adapter
+# [<img title="skipper-s3 - S3 adapter for Skipper" src="http://i.imgur.com/P6gptnI.png" width="200px" alt="skipper emblem - face of a ship's captain"/>](https://github.com/balderdashy/skipper-s3) S3 Blob Adapter
 
 [![NPM version](https://badge.fury.io/js/skipper-s3.png)](http://badge.fury.io/js/skipper-s3) &nbsp; &nbsp;
 [![Build Status](https://travis-ci.org/balderdashy/skipper-s3.svg?branch=master)](https://travis-ci.org/balderdashy/skipper-s3)
 
 S3 adapter for receiving streams of file streams. Particularly useful for streaming multipart file uploads via [Skipper](github.com/balderdashy/skipper).
+
+
+> WARNING
+>
+> THIS MODULE IS UNDER ACTIVE DEVELOPMENT AND NOT READY FOR PRODUCTION USE.
 
 
 ========================================
@@ -61,7 +66,7 @@ var receiving = blobAdapter.receive({
 
 | Option    | Type       | Details |
 |-----------|:----------:|---------|
-| `dirname`  | ((string)) | The path to the directory on disk where file uploads should be streamed.  May be specified as an absolute path (e.g. `/Users/mikermcneil/foo`) or a relative path from the current working directory.  Defaults to `".tmp/uploads/"`
+| `dirname`  | ((string)) | The path to the "directory" on S3 where file uploads should be streamed.  Should be specified as an absolute path (e.g. `/avatar-uploads/admin/`) from the root of the bucket.  Defaults to `"/"`
 | `saveAs()`  | ((function)) | An optional function that can be used to define the logic for naming files. For example: <br/> `function (file) {return Math.random()+file.name;} });` <br/> By default, the filename of the uploaded file is used, including the extension (e.g. `"Screen Shot 2014-05-06 at 4.44.02 PM.jpg"`.  If a file already exists at `dirname` with the same name, it will be overridden. |
 
 
