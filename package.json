@@ -1,14 +1,14 @@
 {
-  "name": "skipper-disk",
-  "version": "0.2.3",
-  "description": "Receive Skipper's file uploads on your local filesystem",
+  "name": "skipper-s3",
+  "version": "0.0.0",
+  "description": "Streaming file uploads to S3",
   "main": "index.js",
   "scripts": {
     "test": "node -e \"require('skipper-adapter-tests')({module: require('./')});\""
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/balderdashy/skipper-disk.git"
+    "url": "git://github.com/balderdashy/skipper-s3.git"
   },
   "keywords": [
     "skipper",
@@ -24,9 +24,9 @@
   "author": "Mike McNeil",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/balderdashy/skipper-disk/issues"
+    "url": "https://github.com/balderdashy/skipper-s3/issues"
   },
-  "homepage": "https://github.com/balderdashy/skipper-disk",
+  "homepage": "https://github.com/balderdashy/skipper-s3",
   "devDependencies": {
     "skipper-adapter-tests": "~1.1.2"
   },
