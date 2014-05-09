@@ -97,7 +97,9 @@ req.file('foo')
 
 See `CONTRIBUTING.md`.
 
+To run the tests:
 
+SECRET=blahblahblah KEY=blah npm test
 
 ========================================
 
