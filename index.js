@@ -56,7 +56,7 @@ module.exports = function SkipperS3 (globalOpts) {
       // DONT trim leading slash to form prefix!!
       var prefix = filepath;
       // var prefix = dirpath.replace(/^\//, '');
-      // console.log('Trying to look up:', prefix);
+      console.log('Trying to look up:', prefix);
 
 
       var client = knox.createClient({
@@ -166,7 +166,7 @@ module.exports = function SkipperS3 (globalOpts) {
             return thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
           });
 
-          // console.log('______ files _______\n', data);
+          console.log('______ files _______\n', data);
           cb(null, data);
         }));
 
@@ -201,20 +201,32 @@ module.exports = function SkipperS3 (globalOpts) {
       objectMode: true
     });
 
+    receiver__.once('error', function (err) {
+      console.log('ERROR ON RECEIVER__ ::',err);
+    });
+
     // This `_write` method is invoked each time a new file is received
     // from the Readable stream (Upstream) which is pumping filestreams
     // into this receiver.  (filename === `__newFile.filename`).
     receiver__._write = function onFile(__newFile, encoding, next) {
 
+      __newFile.once('error', function (err) {
+        console.log('ERROR ON file read stream in receiver (%s) ::', __newFile.filename, err);
+        // TODO: the upload has been cancelled, so we need to stop writing
+        // all buffered bytes, then call gc() to remove the parts of the file that WERE written.
+        // (caveat: may not need to actually call gc()-- need to see how this is implemented
+        // in the underlying knox-mpu module)
+      });
+
       // Garbage-collect the bytes that were already written for this file.
       // (called when a read or write error occurs)
-      function gc(err) {
-        // console.log('************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
-        adapter.rm(filePath, function (gcErr) {
-          if (gcErr) return done([err].concat([gcErr]));
-          else return done();
-        });
-      }
+      // function gc(err) {
+      //   console.log('************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
+      //   adapter.rm(filePath, function (gcErr) {
+      //     if (gcErr) return done([err].concat([gcErr]));
+      //     else return done();
+      //   });
+      // }
 
       // Determine location where file should be written:
       // -------------------------------------------------------
@@ -225,9 +237,17 @@ module.exports = function SkipperS3 (globalOpts) {
       // -------------------------------------------------------
 
 
-      // console.log(('Receiver: Received file `' + __newFile.filename + '` from an Upstream.').grey);
+      console.log(('Receiver: Received file `' + __newFile.filename + '` from an Upstream.').grey);
 
-      // console.log('->',options);
+      // TODO: fix backpressure issues
+      // It would appear that knox-mpu is not
+      // properly handling backpressure, which
+      // breaks the TCP backpressure we're expecting
+      // to keep ourselves from overflowing
+      // Not 100% sure yet- problem could also
+      // be in multiparty.
+
+      console.log('->',options);
       var mpu = new S3MultipartUpload({
         objectName: filePath,
         stream: __newFile,
@@ -239,7 +259,7 @@ module.exports = function SkipperS3 (globalOpts) {
         })
       }, function (err, body) {
         if (err) {
-          // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
+          console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
           receiver__.emit('error', err);
           return;
         }
@@ -248,11 +268,12 @@ module.exports = function SkipperS3 (globalOpts) {
         // in case we decide we want to use it for something later
         __newFile.extra = body;
 
-        // console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
+        console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
         next();
       });
 
       mpu.on('progress', function(data) {
+        console.log('Uploading (%s)..',__newFile.filename, data);
         receiver__.emit('progress', {
           name: __newFile.filename,
           written: data.written,
