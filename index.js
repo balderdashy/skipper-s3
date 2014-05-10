@@ -166,7 +166,7 @@ module.exports = function SkipperS3 (globalOpts) {
             return thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
           });
 
-          console.log('______ files _______\n', data);
+          // console.log('______ files _______\n', data);
           cb(null, data);
         }));
 
