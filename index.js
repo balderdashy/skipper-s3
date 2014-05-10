@@ -51,11 +51,13 @@ module.exports = function SkipperS3 (globalOpts) {
 
   var adapter = {
 
-    read: function (filename, cb) {
+    read: function (filepath, cb) {
 
-      // Determine location where file should be written:
-      var dirPath = globalOpts.dirname;
-      var filePath = path.join(dirPath, filename);
+      // DONT trim leading slash to form prefix!!
+      var prefix = filepath;
+      // var prefix = dirpath.replace(/^\//, '');
+      // console.log('Trying to look up:', prefix);
+
 
       var client = knox.createClient({
         key: globalOpts.key,
@@ -69,7 +71,7 @@ module.exports = function SkipperS3 (globalOpts) {
         return callback(null, chunk);
       };
 
-      client.get(filePath).on('response', function(s3res){
+      client.get(prefix).on('response', function(s3res){
         // Handle explicit s3res errors
         s3res.once('error', function (err) {
           __transform__.emit('error', err);
@@ -102,8 +104,8 @@ module.exports = function SkipperS3 (globalOpts) {
       .end();
 
       if (cb) {
-        var firedCb = false;
-        __transform.once('error', function (err) {
+        var firedCb;
+        __transform__.once('error', function (err) {
           if (firedCb) return;
           firedCb = true;
           cb(err);
@@ -131,7 +133,7 @@ module.exports = function SkipperS3 (globalOpts) {
       // TODO: take a look at maxKeys
       // https://www.npmjs.org/package/s3-lister
 
-      // Allow empty dirpath
+      // Allow empty dirpath (defaults to `/`)
       if (!dirpath) {
         dirpath='/';
       }
@@ -153,11 +155,24 @@ module.exports = function SkipperS3 (globalOpts) {
           cb(err);
         });
         lister.pipe(concat(function (data) {
-          console.log('______ DATA _______\n', data);
           if(firedCb)return;
           firedCb=true;
+
+          // Pluck just the "Key" (i.e. file path)
+          // and return only the filename (i.e. snip
+          // off the path prefix)
+          data = _.pluck(data, 'Key');
+          data = _.map(data, function snipPathPrefixes (thisPath) {
+            return thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
+          });
+
+          console.log('______ files _______\n', data);
           cb(null, data);
         }));
+
+        // TODO: marshal each matched file in the stream
+        // (using a Transform- take a look at all the
+        //  "plucking" and stuff I have going on above ^)
         return lister;
       }
     },
