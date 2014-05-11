@@ -210,6 +210,9 @@ module.exports = function SkipperS3 (globalOpts) {
     // into this receiver.  (filename === `__newFile.filename`).
     receiver__._write = function onFile(__newFile, encoding, next) {
 
+      // console.time('fileupload:'+__newFile.filename);
+      var startedAt = new Date();
+
       __newFile.once('error', function (err) {
         console.log('ERROR ON file read stream in receiver (%s) ::', __newFile.filename, err);
         // TODO: the upload has been cancelled, so we need to stop writing
@@ -269,10 +272,24 @@ module.exports = function SkipperS3 (globalOpts) {
         __newFile.extra = body;
 
         console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
+
+
+        // console.timeEnd('fileupload:'+__newFile.filename);
+        var endedAt = new Date();
+        var duration = ((endedAt - startedAt) / 1000);
+        console.log('Upload took '+duration+' seconds...');
+
         next();
       });
 
+
       mpu.on('progress', function(data) {
+        var snapshot = new Date();
+        var secondsElapsed = ((snapshot - startedAt) / 1000);
+        var estUploadRate = (data.written/1000) / secondsElapsed;
+        console.log('Uploading at %dkB/s', estUploadRate);
+        console.log('Elapsed:',secondsElapsed+'s');
+
         console.log('Uploading (%s)..',__newFile.filename, data);
         receiver__.emit('progress', {
           name: __newFile.filename,
