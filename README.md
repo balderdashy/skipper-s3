@@ -100,9 +100,14 @@ req.file('foo')
 
 See `CONTRIBUTING.md`.
 
-To run the tests:
+####Jump in and run the tests:
 
-SECRET=blahblahblah KEY=blah npm test
+```sh
+git clone git@github.com:balderdashy/skipper-s3.git
+cd skipper-s3
+npm install
+KEY= your_aws_access_key SECRET=your_aws_access_secret BUCKET=your_s3_bucket npm test
+```
 
 ========================================
 
