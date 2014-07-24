@@ -62,7 +62,9 @@ module.exports = function SkipperS3 (globalOpts) {
       var client = knox.createClient({
         key: globalOpts.key,
         secret: globalOpts.secret,
-        bucket: globalOpts.bucket
+        bucket: globalOpts.bucket,
+        region: globalOpts.region,
+        endpoint: globalOpts.endpoint
       });
 
       // Build a noop transform stream that will pump the S3 output through
@@ -127,7 +129,9 @@ module.exports = function SkipperS3 (globalOpts) {
       var client = knox.createClient({
         key: globalOpts.key,
         secret: globalOpts.secret,
-        bucket: globalOpts.bucket
+        bucket: globalOpts.bucket,
+        region: globalOpts.region,
+        endpoint: globalOpts.endpoint
       });
 
       // TODO: take a look at maxKeys
@@ -258,7 +262,9 @@ module.exports = function SkipperS3 (globalOpts) {
         client: knox.createClient({
           key: options.key,
           secret: options.secret,
-          bucket: options.bucket
+          bucket: options.bucket,
+          region: globalOpts.region,
+          endpoint: globalOpts.endpoint
         })
       }, function (err, body) {
         if (err) {
