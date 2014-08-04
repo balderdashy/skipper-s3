@@ -25,7 +25,7 @@ module.exports = function encryptForTravis (options, cb) {
     return envVarName.toUpperCase() + '=' + value +' ' + memo;
   }, '');
   // Trim trailing whitespace
-  envVarString = envVarString.replace(/\s*$/);
+  envVarString = envVarString.replace(/\s*$/, '');
 
   encrypt(repo, envVarString, undefined, undefined, function (err, encryptedEnvVars) {
     if (err) {
