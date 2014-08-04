@@ -5,10 +5,7 @@ node_js:
 
 env:
   global:
-    - key:
-"p/InHdbhzjS3l/thqkKrKJYASBpAgsNIeoTCBc+sdWreXyDFhe2gs/pOceyaXtjPcgS7wrGlqw8ydgyq1A5sRocoj2hwdJn+mHr6Xecyn2pjEW+1c2llb4W9Mq2ph18FIDNIljxscKD+qxRWVyB08VaMrNNRf0wKACAJafh7Htg="
-    - secret:
-"Ys5/e6uj+UGS6v4Wh+lJftLdi3W6UBb+BZMa22gEsQd2mpEkXSMOqF5putH/HacZd95GIXLpTmKj2k9BNfDFrUGlHQf7xg8YWRpx75wQ6nOnCY0iKvvityf9xiWe/SMNW890/6XGCGaa0Uhg43q51b/SCrVdX0lonr39bQDxEIQ="
+    - secure: "dLPPPpS4hJNX9M2OEjP03ofoYcyXkTv50nsi3DL40nIMC5cjbIl7J33NRgCA06F++5Th5kNkx56zRkT183a92fahb/Vth2irta1H76oatueCbu7/WO5cG47mqM7H2CJnbZpw1jgbJj61WeLMi7qHUnowwL47A3zBqdfPUsGuG6k="
 
 
 # ~*** ------------------------------------------------->

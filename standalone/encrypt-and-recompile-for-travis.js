@@ -17,15 +17,12 @@ module.exports = function encryptAndRecompileForTravis (options, cb) {
   options = options || {};
   cb = cb || function noOp(err){ if (err) throw err; };
 
-  var REPO = options.repo || 'balderdashy/sails';
+  var repo = options.repo || 'balderdashy/sails';
   var envVars = options.envVars || {};
 
   encryptForTravis({
-    repo: 'balderdashy/skipper-s3',
-    envVars: {
-      key: 'foo',
-      secret: 'bar'
-    }
+    repo: repo,
+    envVars: envVars
   }, function (err, encryptedEnvVars) {
     if (err) return cb(err);
     recompileTravisYmlFile({
