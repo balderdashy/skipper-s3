@@ -6,9 +6,9 @@ node_js:
 env:
   global:
     - key:
-"p/InHdbhzjS3l/thqkKrKJYASBpAgsNIeoTCBc+sdWreXyDFhe2gs/pOceyaXtjPcgS7wrGlqw8ydgyq1A5sRocoj2hwdJn+mHr6Xecyn2pjEW+1c2llb4W9Mq2ph18FIDNIljxscKD+qxRWVyB08VaMrNNRf0wKACAJafh7Htg="
+"<%=key%>"
     - secret:
-"Ys5/e6uj+UGS6v4Wh+lJftLdi3W6UBb+BZMa22gEsQd2mpEkXSMOqF5putH/HacZd95GIXLpTmKj2k9BNfDFrUGlHQf7xg8YWRpx75wQ6nOnCY0iKvvityf9xiWe/SMNW890/6XGCGaa0Uhg43q51b/SCrVdX0lonr39bQDxEIQ="
+"<%=secret%>"
 
 
 # ~*** ------------------------------------------------->
@@ -24,4 +24,9 @@ env:
 #
 # <--------------------------------------------------- ***~
 
-
+<%
+// Just kidding about all that ^^^^
+// Actually this is the template file so you SHOULD change it.
+// The warning below is only here because we need to copy it over every time
+// .travis.yml is recompiled.
+%>
