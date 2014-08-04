@@ -6,11 +6,6 @@
 S3 adapter for receiving streams of file streams. Particularly useful for streaming multipart file uploads via [Skipper](github.com/balderdashy/skipper).
 
 
-> WARNING
->
-> THIS MODULE IS UNDER ACTIVE DEVELOPMENT AND NOT READY FOR PRODUCTION USE.
-
-
 ========================================
 
 ## Installation
