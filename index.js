@@ -190,7 +190,6 @@ module.exports = function SkipperS3 (globalOpts) {
     // into this receiver.  (filename === `__newFile.filename`).
     receiver__._write = function onFile(__newFile, encoding, next) {
 
-      // console.time('fileupload:'+__newFile.filename);
       var startedAt = new Date();
 
       __newFile.once('error', function (err) {
@@ -200,44 +199,18 @@ module.exports = function SkipperS3 (globalOpts) {
         // (caveat: may not need to actually call gc()-- need to see how this is implemented
         // in the underlying knox-mpu module)
         //
-        // Skipper core should call gc() for us.
+        // Skipper core should gc() for us.
       });
 
-      // Garbage-collect the bytes that were already written for this file.
-      // (called when a read or write error occurs)
-      // function gc(err) {
-      // console.log('************** Garbage collecting file `' + __newFile.filename + '` located @ ' + filePath + '...');
-      //   adapter.rm(filePath, function (gcErr) {
-      //     if (gcErr) return done([err].concat([gcErr]));
-      //     else return done();
-      //   });
-      // }
+      // Allow `tmpdir` for knox-mpu to be passed in, or default
+      // to `.tmp/s3-upload-part-queue`
+      options.tmpdir = options.tmpdir || path.resolve(process.cwd(), '.tmp/s3-upload-part-queue');
 
-      // Determine location where file should be written:
-      // -------------------------------------------------------
-      // var filePath, dirPath, filename;
-      // dirPath = options.dirname;
-      // filename = options.filename || options.saveAs(__newFile);
-      // filePath = path.join(dirPath, filename);
-      // -------------------------------------------------------
-
-
-      // console.log(('Receiver: Received file `' + __newFile.filename + '` from an Upstream.').grey);
-
-      // TODO: fix backpressure issues
-      // It would appear that knox-mpu is not
-      // properly handling backpressure, which
-      // breaks the TCP backpressure we're expecting
-      // to keep ourselves from overflowing
-      // Not 100% sure yet- problem could also
-      // be in multiparty.
-
-      // console.log('\n\n******\nWRITING TO S3 %s @ %s',options.bucket, __newFile.fd,'\n********');
-      // console.log('->',options);
       var mpu = new S3MultipartUpload({
         objectName: __newFile.fd,
         stream: __newFile,
         maxUploadSize: options.maxBytes,
+        tmpDir: options.tmpdir,
         client: knox.createClient({
           key: options.key,
           secret: options.secret,
