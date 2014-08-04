@@ -13,16 +13,3 @@ buildYml({
   }
 });
 
-
-// ----------------------------------------------------------------------------
-// Could get even fancier by doing something like this:
-// (from http://docs.travis-ci.com/user/travis-pro/)
-//
-//
-// > For the build to decrypt the file, add a before_script section to your
-// > `.travis.yml` that runs the opposite command of the above:
-// >
-// > before_script:
-// >   - secret=`openssl rsautl -decrypt -inkey ~/.ssh/id_rsa -in secret`
-// >   - openssl aes-256-cbc -k "$secret" -in config.xml.enc -d -a -out config.xml
-// ----------------------------------------------------------------------------
