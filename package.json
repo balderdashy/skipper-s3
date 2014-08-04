@@ -27,12 +27,12 @@
   "homepage": "https://github.com/balderdashy/skipper-s3",
   "devDependencies": {
     "skipper-adapter-tests": "~1.5.1",
-    "travis-encrypt": "^1.0.1"
+    "travis-encrypt": "~1.0.1"
   },
   "dependencies": {
     "lodash": "~2.4.1",
     "fs-extra": "~0.8.1",
-    "knox-mpu-alt": "~0.1.8",
+    "knox-mpu-alt": "~0.1.9",
     "knox": "~0.8.9",
     "merge-defaults": "~0.1.0",
     "concat-stream": "~1.4.5",
