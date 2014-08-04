@@ -23,6 +23,8 @@ var S3Lister = require('s3-lister');
 module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
+  // console.log('S3 adapter was instantiated...');
+
 
   // _.defaults(globalOpts, {
 
@@ -180,7 +182,6 @@ module.exports = function SkipperS3 (globalOpts) {
       }
     },
 
-    receiver: S3Receiver,
     receive: S3Receiver
   };
 
@@ -197,6 +198,7 @@ module.exports = function SkipperS3 (globalOpts) {
    * @return {Stream.Writable}
    */
   function S3Receiver (options) {
+    // console.log('`.receive()` was called...');
     options = options || {};
     options = _.defaults(options, globalOpts);
 
@@ -255,7 +257,7 @@ module.exports = function SkipperS3 (globalOpts) {
       // Not 100% sure yet- problem could also
       // be in multiparty.
 
-      console.log('\n\n******\nWRITING TO S3 %s @ %s',options.bucket, __newFile.fd,'\n********');
+      // console.log('\n\n******\nWRITING TO S3 %s @ %s',options.bucket, __newFile.fd,'\n********');
       // console.log('->',options);
       var mpu = new S3MultipartUpload({
         objectName: __newFile.fd,
@@ -285,7 +287,7 @@ module.exports = function SkipperS3 (globalOpts) {
         // console.timeEnd('fileupload:'+__newFile.filename);
         var endedAt = new Date();
         var duration = ((endedAt - startedAt) / 1000);
-        // console.log('Upload took '+duration+' seconds...');
+        // console.log('**** S3 upload took '+duration+' seconds...');
 
         next();
       });
