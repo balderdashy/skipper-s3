@@ -23,38 +23,8 @@ var S3Lister = require('s3-lister');
 module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
+  // console.log('S3 adapter was instantiated...');
 
-
-  console.log('S3 adapter was instantiated...','\nENV VARS:\n',{
-    key: process.env.KEY,
-    secret: process.env.SECRET
-  });
-
-
-  // _.defaults(globalOpts, {
-
-  //     // By default, create new files on disk
-  //     // using their uploaded filenames.
-  //     // (no overwrite-checking is performed!!)
-  //     // saveAs: function (__newFile) {
-  //     //   return __newFile.filename;
-  //     // },
-
-  //     // Max bytes (defaults to ~15MB)
-  //     maxBytes: 15000000,
-
-  //     // The bucket we're going to upload stuff into
-  //     // bucket: '',
-
-  //     // Our S3 API key
-  //     // key: '',
-
-  //     // Our S3 API secret
-  //     // secret: '',
-
-  //     // By default, upload files to `/` (within the bucket)
-  //     dirname: '/'
-  //   });
 
   var adapter = {
 
