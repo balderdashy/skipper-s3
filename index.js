@@ -24,30 +24,30 @@ module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
 
-  _.defaults(globalOpts, {
+  // _.defaults(globalOpts, {
 
-      // By default, create new files on disk
-      // using their uploaded filenames.
-      // (no overwrite-checking is performed!!)
-      saveAs: function (__newFile) {
-        return __newFile.filename;
-      },
+  //     // By default, create new files on disk
+  //     // using their uploaded filenames.
+  //     // (no overwrite-checking is performed!!)
+  //     // saveAs: function (__newFile) {
+  //     //   return __newFile.filename;
+  //     // },
 
-      // Max bytes (defaults to ~15MB)
-      maxBytes: 15000000,
+  //     // Max bytes (defaults to ~15MB)
+  //     maxBytes: 15000000,
 
-      // The bucket we're going to upload stuff into
-      // bucket: '',
+  //     // The bucket we're going to upload stuff into
+  //     // bucket: '',
 
-      // Our S3 API key
-      // key: '',
+  //     // Our S3 API key
+  //     // key: '',
 
-      // Our S3 API secret
-      // secret: '',
+  //     // Our S3 API secret
+  //     // secret: '',
 
-      // By default, upload files to `/` (within the bucket)
-      dirname: '/'
-    });
+  //     // By default, upload files to `/` (within the bucket)
+  //     dirname: '/'
+  //   });
 
   var adapter = {
 
@@ -58,13 +58,12 @@ module.exports = function SkipperS3 (globalOpts) {
       // var prefix = dirpath.replace(/^\//, '');
       // console.log('Trying to look up:', prefix);
 
-
       var client = knox.createClient({
         key: globalOpts.key,
         secret: globalOpts.secret,
         bucket: globalOpts.bucket,
-        region: globalOpts.region,
-        endpoint: globalOpts.endpoint
+        region: globalOpts.region||undefined,
+        endpoint: globalOpts.endpoint||undefined
       });
 
       // Build a noop transform stream that will pump the S3 output through
@@ -223,6 +222,8 @@ module.exports = function SkipperS3 (globalOpts) {
         // all buffered bytes, then call gc() to remove the parts of the file that WERE written.
         // (caveat: may not need to actually call gc()-- need to see how this is implemented
         // in the underlying knox-mpu module)
+        //
+        // Skipper core should call gc() for us.
       });
 
       // Garbage-collect the bytes that were already written for this file.
@@ -237,10 +238,10 @@ module.exports = function SkipperS3 (globalOpts) {
 
       // Determine location where file should be written:
       // -------------------------------------------------------
-      var filePath, dirPath, filename;
-      dirPath = options.dirname;
-      filename = options.filename || options.saveAs(__newFile);
-      filePath = path.join(dirPath, filename);
+      // var filePath, dirPath, filename;
+      // dirPath = options.dirname;
+      // filename = options.filename || options.saveAs(__newFile);
+      // filePath = path.join(dirPath, filename);
       // -------------------------------------------------------
 
 
@@ -254,17 +255,18 @@ module.exports = function SkipperS3 (globalOpts) {
       // Not 100% sure yet- problem could also
       // be in multiparty.
 
+      console.log('\n\n******\nWRITING TO S3 %s @ %s',options.bucket, __newFile.fd,'\n********');
       // console.log('->',options);
       var mpu = new S3MultipartUpload({
-        objectName: filePath,
+        objectName: __newFile.fd,
         stream: __newFile,
         maxUploadSize: options.maxBytes,
         client: knox.createClient({
           key: options.key,
           secret: options.secret,
           bucket: options.bucket,
-          region: globalOpts.region,
-          endpoint: globalOpts.endpoint
+          region: globalOpts.region||undefined,
+          endpoint: globalOpts.endpoint||undefined
         })
       }, function (err, body) {
         if (err) {
