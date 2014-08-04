@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/balderdashy/skipper-s3",
   "devDependencies": {
-    "skipper-adapter-tests": "~1.5.0"
+    "skipper-adapter-tests": "~1.5.1"
   },
   "dependencies": {
     "lodash": "~2.4.1",
