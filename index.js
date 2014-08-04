@@ -23,7 +23,12 @@ var S3Lister = require('s3-lister');
 module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
-  // console.log('S3 adapter was instantiated...');
+
+
+  console.log('S3 adapter was instantiated...','\nENV VARS:\n',{
+    key: process.env.KEY,
+    secret: process.env.SECRET
+  });
 
 
   // _.defaults(globalOpts, {
