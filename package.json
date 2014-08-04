@@ -1,6 +1,6 @@
 {
   "name": "skipper-s3",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Streaming file uploads to S3",
   "main": "index.js",
   "scripts": {
