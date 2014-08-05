@@ -4,7 +4,7 @@
   "description": "Streaming file uploads to S3",
   "main": "index.js",
   "scripts": {
-    "test": "node -e \"require('skipper-adapter-tests')({module: require('./'), bucket:'skipper-adapter-tests', key: process.env.KEY, secret: process.env.SECRET});\""
+    "test": "node -e \"require('skipper-adapter-tests')({mocha: { timeout: 360000 }, module: require('./'), bucket:'skipper-adapter-tests', key: process.env.KEY, secret: process.env.SECRET});\""
   },
   "repository": {
     "type": "git",
