@@ -28,12 +28,9 @@ module.exports = function SkipperS3 (globalOpts) {
 
   var adapter = {
 
-    read: function (filepath, cb) {
+    read: function (fd, cb) {
 
-      // DONT trim leading slash to form prefix!!
-      var prefix = filepath;
-      // var prefix = dirpath.replace(/^\//, '');
-      // console.log('Trying to look up:', prefix);
+      var prefix = fd;
 
       var client = knox.createClient({
         key: globalOpts.key,
@@ -98,10 +95,10 @@ module.exports = function SkipperS3 (globalOpts) {
       return __transform__;
     },
 
-    rm: function (filepath, cb){
+    rm: function (fd, cb){
       return cb(new Error('TODO'));
     },
-    ls: function (dirpath, cb) {
+    ls: function (dirname, cb) {
       var client = knox.createClient({
         key: globalOpts.key,
         secret: globalOpts.secret,
@@ -113,12 +110,14 @@ module.exports = function SkipperS3 (globalOpts) {
       // TODO: take a look at maxKeys
       // https://www.npmjs.org/package/s3-lister
 
-      // Allow empty dirpath (defaults to `/`)
-      if (!dirpath) {
-        dirpath='/';
+      // Allow empty dirname (defaults to `/`)
+      if (!dirname) {
+        prefix='/';
       }
-      // Strip leading slash from dirpath to form prefix
-      var prefix = dirpath.replace(/^\//, '');
+      else prefix = dirname;
+
+      // Strip leading slash from dirname to form prefix
+      var prefix = dirname.replace(/^\//, '');
 
       var lister = new S3Lister(client, {
         prefix : prefix
@@ -143,8 +142,15 @@ module.exports = function SkipperS3 (globalOpts) {
           // off the path prefix)
           data = _.pluck(data, 'Key');
           data = _.map(data, function snipPathPrefixes (thisPath) {
-            return thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
+            thisPath = thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
+
+            // Join the dirname with the filename
+            thisPath = path.join(dirname, path.basename(thisPath));
+
+            return thisPath;
           });
+
+
 
           // console.log('______ files _______\n', data);
           cb(null, data);
