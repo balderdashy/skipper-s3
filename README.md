@@ -41,15 +41,14 @@ req.file('avatar')
 
 For more detailed usage information and a full list of available options, see the Skipper docs, especially the section on "[https://github.com/balderdashy/skipper#uploading-files-to-s3](Uploading to S3)".
 
-========================================
 
 ## Contribute
 
-See `CONTRIBUTING.md`.
+See [ROADMAP.md](https://github.com/balderdashy/skipper-s3/blob/master/ROADMAP.md).
 
 Also be sure to check out [ROADMAP.md in the Skipper repo](https://github.com/balderdashy/skipper/blob/master/ROADMAP.md).
 
-####Jump in and run the tests:
+To run the tests:
 
 ```sh
 git clone git@github.com:balderdashy/skipper-s3.git
@@ -57,6 +56,8 @@ cd skipper-s3
 npm install
 KEY= your_aws_access_key SECRET=your_aws_access_secret BUCKET=your_s3_bucket npm test
 ```
+
+Please don't check in your aws credentials :)
 
 ========================================
 
