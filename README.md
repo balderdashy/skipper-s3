@@ -6,19 +6,14 @@
 S3 adapter for receiving [upstreams](https://github.com/balderdashy/skipper#what-are-upstreams). Particularly useful for handling streaming multipart file uploads from the [Skipper](https://github.com/balderdashy/skipper) body parser.
 
 
-========================================
-
 ## Installation
 
 ```
 $ npm install skipper-s3 --save
 ```
 
-Also make sure you have skipper [installed as your body parser](http://beta.sailsjs.org/#/documentation/concepts/Middleware?q=adding-or-overriding-http-middleware).
+Also make sure you have skipper itself [installed as your body parser](http://beta.sailsjs.org/#/documentation/concepts/Middleware?q=adding-or-overriding-http-middleware).  This is the default configuration in [Sails](https://github.com/balderdashy/sails) as of v0.10.
 
-> Skipper is installed by defaut in [Sails](https://github.com/balderdashy/sails) v0.10.
-
-========================================
 
 ## Usage
 
@@ -59,9 +54,8 @@ KEY= your_aws_access_key SECRET=your_aws_access_secret BUCKET=your_s3_bucket npm
 
 Please don't check in your aws credentials :)
 
-========================================
 
-### License
+## License
 
 **[MIT](./LICENSE)**
 &copy; 2013, 2014-
