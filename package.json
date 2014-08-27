@@ -36,6 +36,7 @@
     "knox": "~0.8.9",
     "merge-defaults": "~0.1.0",
     "concat-stream": "~1.4.5",
-    "s3-lister": "~0.1.0"
+    "s3-lister": "~0.1.0",
+    "mime": "~1.2.11"
   }
 }
