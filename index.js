@@ -11,7 +11,7 @@ _.defaultsDeep = require('merge-defaults');
 var knox = require('knox');
 var S3MultipartUpload = require('knox-mpu-alt');
 var S3Lister = require('s3-lister');
-
+var mime = require('mime');
 
 /**
  * skipper-s3
@@ -212,11 +212,19 @@ module.exports = function SkipperS3 (globalOpts) {
       // to `.tmp/s3-upload-part-queue`
       options.tmpdir = options.tmpdir || path.resolve(process.cwd(), '.tmp/s3-upload-part-queue');
 
+      var headers = options.headers || {};
+
+      // Lookup content type with mime if not set
+      if ('undefined' === typeof headers['content-type']) {
+        headers['content-type'] = mime.lookup(__newFile.fd);
+      }
+
       var mpu = new S3MultipartUpload({
         objectName: __newFile.fd,
         stream: __newFile,
         maxUploadSize: options.maxBytes,
         tmpDir: options.tmpdir,
+        headers: headers,
         client: knox.createClient({
           key: options.key,
           secret: options.secret,
