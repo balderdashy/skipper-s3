@@ -220,7 +220,7 @@ module.exports = function SkipperS3 (globalOpts) {
       }
 
       var mpu = new S3MultipartUpload({
-        objectName: __newFile.fd,
+        objectName: options.objectName || __newFile.fd,
         stream: __newFile,
         maxUploadSize: options.maxBytes,
         tmpDir: options.tmpdir,
