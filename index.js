@@ -37,7 +37,8 @@ module.exports = function SkipperS3 (globalOpts) {
         secret: globalOpts.secret,
         bucket: globalOpts.bucket,
         region: globalOpts.region||undefined,
-        endpoint: globalOpts.endpoint||undefined
+        endpoint: globalOpts.endpoint||undefined,
+        token: globalOpts.token||undefined
       });
 
       // Build a noop transform stream that will pump the S3 output through
@@ -104,7 +105,8 @@ module.exports = function SkipperS3 (globalOpts) {
         secret: globalOpts.secret,
         bucket: globalOpts.bucket,
         region: globalOpts.region,
-        endpoint: globalOpts.endpoint
+        endpoint: globalOpts.endpoint,
+        token: globalOpts.token||undefined
       });
 
       // TODO: take a look at maxKeys
@@ -230,7 +232,8 @@ module.exports = function SkipperS3 (globalOpts) {
           secret: options.secret,
           bucket: options.bucket,
           region: globalOpts.region||undefined,
-          endpoint: globalOpts.endpoint||undefined
+          endpoint: globalOpts.endpoint||undefined,
+          token: globalOpts.token||undefined
         })
       }, function (err, body) {
         if (err) {
