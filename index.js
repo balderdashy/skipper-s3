@@ -216,7 +216,7 @@ module.exports = function SkipperS3 (globalOpts) {
 
       // Lookup content type with mime if not set
       if ('undefined' === typeof headers['content-type']) {
-        headers['content-type'] = mime.lookup(__newFile.fd);
+        headers['content-type'] = mime.lookup(__newFile.filename);
       }
 
       var mpu = new S3MultipartUpload({
@@ -278,5 +278,3 @@ module.exports = function SkipperS3 (globalOpts) {
 
 
 };
-
-
