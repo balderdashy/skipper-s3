@@ -105,7 +105,7 @@ module.exports = function SkipperS3 (globalOpts) {
       })
         .del(fd)
         .on('response', function (res) {
-            if (res.statusCode === 200) {
+            if (res.statusCode === 204) {
               cb();
             } else {
               cb({
