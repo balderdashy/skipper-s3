@@ -95,8 +95,26 @@ module.exports = function SkipperS3 (globalOpts) {
       return __transform__;
     },
 
-    rm: function (fd, cb){
-      return cb(new Error('TODO'));
+    rm: function (fd, cb) {
+      knox.createClient({
+        key: globalOpts.key,
+        secret: globalOpts.secret,
+        bucket: globalOpts.bucket,
+        region: globalOpts.region||undefined,
+        endpoint: globalOpts.endpoint||undefined
+      })
+        .del(fd)
+        .on('response', function (res) {
+            if (res.statusCode === 200) {
+              cb();
+            } else {
+              cb({
+                statusCode: res.statusCode,
+                message: res.body
+              });
+            }
+          })
+        .end();
     },
     ls: function (dirname, cb) {
       var client = knox.createClient({
