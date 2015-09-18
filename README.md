@@ -49,7 +49,7 @@ To run the tests:
 git clone git@github.com:balderdashy/skipper-s3.git
 cd skipper-s3
 npm install
-KEY= your_aws_access_key SECRET=your_aws_access_secret BUCKET=your_s3_bucket npm test
+KEY=your_aws_access_key SECRET=your_aws_access_secret BUCKET=your_s3_bucket npm test
 ```
 
 Please don't check in your aws credentials :)
