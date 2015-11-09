@@ -34,7 +34,7 @@ req.file('avatar')
 ```
 
 
-For more detailed usage information and a full list of available options, see the Skipper docs, especially the section on "[https://github.com/balderdashy/skipper#uploading-files-to-s3](Uploading to S3)".
+For more detailed usage information and a full list of available options, see the Skipper docs, especially the section on "[Uploading to S3](https://github.com/balderdashy/skipper#uploading-files-to-s3)".
 
 
 ## Contribute
