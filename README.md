@@ -21,8 +21,8 @@ Also make sure you have skipper itself [installed as your body parser](http://be
 req.file('avatar')
 .upload({
   adapter: require('skipper-s3'),
-  key: 'thekyehthethaeiaghadkthtekey'
-  secret: 'AB2g1939eaGAdesoccertournament'
+  key: 'thekyehthethaeiaghadkthtekey',
+  secret: 'AB2g1939eaGAdesoccertournament',
   bucket: 'my_stuff'
 }, function whenDone(err, uploadedFiles) {
   if (err) return res.negotiate(err);
@@ -34,7 +34,7 @@ req.file('avatar')
 ```
 
 
-For more detailed usage information and a full list of available options, see the Skipper docs, especially the section on "[https://github.com/balderdashy/skipper#uploading-files-to-s3](Uploading to S3)".
+For more detailed usage information and a full list of available options, see the Skipper docs, especially the section on "[Uploading to S3](https://github.com/balderdashy/skipper#uploading-files-to-s3)".
 
 
 ## Contribute
