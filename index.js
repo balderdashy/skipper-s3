@@ -272,6 +272,8 @@ module.exports = function SkipperS3 (globalOpts) {
         var duration = ((endedAt - startedAt) / 1000);
         // console.log('**** S3 upload took '+duration+' seconds...');
 
+        receiver__.emit('writefile', __newFile);
+
         next();
       });
 
