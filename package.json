@@ -27,7 +27,7 @@
   "homepage": "https://github.com/balderdashy/skipper-s3",
   "devDependencies": {
     "skipper-adapter-tests": "~1.5.2",
-    "travis-encrypt": "~1.0.1"
+    "travis-encrypt": "^2.1.1"
   },
   "dependencies": {
     "concat-stream": "~1.4.5",
@@ -37,7 +37,6 @@
     "lodash": "~2.4.1",
     "merge-defaults": "~0.1.0",
     "mime": "~1.2.11",
-    "s3-lister": "~0.1.0",
-    "travis-encrypt": "^2.1.1"
+    "s3-lister": "~0.1.0"
   }
 }
