@@ -32,7 +32,7 @@
     "concat-stream": "~1.4.5",
     "fs-extra": "~0.8.1",
     "knox": "~0.8.9",
-    "knox-mpu-alt": "~0.1.9",
+    "knox-mpu-alt": "~0.2.1",
     "lodash": "~2.4.1",
     "merge-defaults": "~0.1.0",
     "mime": "~1.2.11",
