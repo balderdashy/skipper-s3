@@ -203,6 +203,11 @@ module.exports = function SkipperS3 (globalOpts) {
     options = options || {};
     options = _.defaults(options, globalOpts);
 
+    // The max bytes available for uploading starts out as the
+    // max upload limit, and is reduced every time a file
+    // is successfully uploaded.
+    var bytesRemaining = options.maxBytes;
+
     var receiver__ = Writable({
       objectMode: true
     });
@@ -242,7 +247,7 @@ module.exports = function SkipperS3 (globalOpts) {
       var mpu = new S3MultipartUpload({
         objectName: __newFile.fd,
         stream: __newFile,
-        maxUploadSize: options.maxBytes,
+        maxUploadSize: bytesRemaining,
         tmpDir: options.tmpdir,
         headers: headers,
         client: knox.createClient({
@@ -259,6 +264,10 @@ module.exports = function SkipperS3 (globalOpts) {
           receiver__.emit('error', err);
           return;
         }
+
+        // Reduce the bytes available for upload by the size of the
+        // successfully uploaded file.
+        bytesRemaining -= body.size;
 
         // Package extra metadata about the S3 response on each file stream
         // in case we decide we want to use it for something later
