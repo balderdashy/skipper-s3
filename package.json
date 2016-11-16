@@ -26,17 +26,17 @@
   },
   "homepage": "https://github.com/balderdashy/skipper-s3",
   "devDependencies": {
-    "skipper-adapter-tests": "~1.5.2"
+    "skipper-adapter-tests": "~1.5.8"
   },
   "dependencies": {
-    "concat-stream": "~1.4.5",
-    "fs-extra": "~0.8.1",
-    "knox": "~0.8.9",
-    "knox-mpu-alt": "~0.2.1",
-    "lodash": "~2.4.1",
-    "merge-defaults": "~0.1.0",
-    "mime": "~1.2.11",
-    "s3-lister": "~0.1.0"
+    "concat-stream": "1.4.10",
+    "fs-extra": "0.30.0",
+    "knox": "0.8.10",
+    "knox-mpu-alt": "0.2.1",
+    "lodash": "3.10.1",
+    "merge-defaults": "0.1.4",
+    "mime": "1.2.11",
+    "s3-lister": "0.1.0"
   },
   "optionalDependencies": {
     "travis-encrypt": "^2.1.1"
