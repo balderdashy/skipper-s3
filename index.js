@@ -244,6 +244,8 @@ module.exports = function SkipperS3 (globalOpts) {
         headers['content-type'] = mime.lookup(__newFile.fd);
       }
 
+      var bytesWritten = 0;
+
       var mpu = new S3MultipartUpload({
         objectName: __newFile.fd,
         stream: __newFile,
@@ -275,12 +277,16 @@ module.exports = function SkipperS3 (globalOpts) {
 
         // console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
 
+        // Set the byteCount on the stream to the size of the file that was persisted.
+        // Skipper uses this value when serializing uploaded file info.
+        __newFile.byteCount = body.size;
 
         // console.timeEnd('fileupload:'+__newFile.filename);
         var endedAt = new Date();
         var duration = ((endedAt - startedAt) / 1000);
         // console.log('**** S3 upload took '+duration+' seconds...');
 
+        // Indicate that a file was persisted.
         receiver__.emit('writefile', __newFile);
 
         next();
@@ -298,7 +304,7 @@ module.exports = function SkipperS3 (globalOpts) {
         receiver__.emit('progress', {
           name: __newFile.filename,
           written: data.written,
-          total: data.total,
+          total: bytesWritten += data.written,
           percent: data.percent
         });
       });
