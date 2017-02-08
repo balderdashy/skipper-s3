@@ -23,7 +23,8 @@ req.file('avatar')
   adapter: require('skipper-s3'),
   key: 'thekyehthethaeiaghadkthtekey',
   secret: 'AB2g1939eaGAdesoccertournament',
-  bucket: 'my_stuff'
+  bucket: 'my_stuff',
+  token: 'temporary_sts_creds'
 }, function whenDone(err, uploadedFiles) {
   if (err) return res.negotiate(err);
   else return res.ok({
