@@ -20,14 +20,18 @@ Also make sure you have skipper itself [installed as your body parser](http://be
 ```javascript
 req.file('avatar')
 .upload({
+  // Required
   adapter: require('skipper-s3'),
   key: 'thekyehthethaeiaghadkthtekey',
   secret: 'AB2g1939eaGAdesoccertournament',
   bucket: 'my_stuff',
+  // Optional
   token: 'temporary_sts_creds'
 }, function whenDone(err, uploadedFiles) {
-  if (err) return res.negotiate(err);
-  else return res.ok({
+  if (err) {
+    return res.serverError(err);
+  }
+  return res.ok({
     files: uploadedFiles,
     textParams: req.params.all()
   });
