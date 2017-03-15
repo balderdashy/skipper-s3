@@ -29,7 +29,7 @@
     "skipper-adapter-tests": "~1.5.8"
   },
   "dependencies": {
-    "concat-stream": "1.4.10",
+    "concat-stream": "1.6.0",
     "fs-extra": "0.30.0",
     "knox": "0.8.10",
     "knox-mpu-alt": "0.2.1",
