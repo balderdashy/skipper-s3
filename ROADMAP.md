@@ -37,4 +37,4 @@ The backlog consists of features which are not currently in the immediate-term r
  Feature                                         | Owner                                                                            | Details
  :---------------------------------------------- | :------------------------------------------------------------------------------- | :------
  support customizable ACL parameters in options  | [@abrantes01](https://github.com/abrantes01) | ability to attach ACL parameters in order to allow public access to files (See example [here](https://github.com/balderdashy/skipper-s3/issues/1)
-
+support path prefix parameter in options  | [@heijmerikx](https://github.com/heijmerikx) | ability to specify a (path)prefix to the uploaded file
