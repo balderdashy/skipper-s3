@@ -244,6 +244,11 @@ module.exports = function SkipperS3 (globalOpts) {
         headers['content-type'] = mime.lookup(__newFile.fd);
       }
 
+      // Add acl to the headers if it was set in the options.
+      if (options.hasOwnProperty('acl') && typeof options['acl'] === 'string'){
+        headers['x-amz-acl'] = options['acl'];
+      }
+
       var bytesWritten = 0;
 
       var mpu = new S3MultipartUpload({
