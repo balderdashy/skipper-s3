@@ -183,135 +183,134 @@ module.exports = function SkipperS3 (globalOpts) {
       }
     },
 
-    receive: S3Receiver
+    /**
+     * A simple receiver for Skipper that writes Upstreams to
+     * S3 to the configured bucket at the configured path.
+     *
+     * Includes a garbage-collection mechanism for failed
+     * uploads.
+     *
+     * @param  {Object} options
+     * @return {Stream.Writable}
+     */
+    receive: function S3Receiver (options) {
+      // console.log('`.receive()` was called...');
+      options = options || {};
+      options = _.defaults(options, globalOpts);
+
+      // The max bytes available for uploading starts out as the
+      // max upload limit, and is reduced every time a file
+      // is successfully uploaded.
+      var bytesRemaining = options.maxBytes;
+
+      var receiver__ = Writable({
+        objectMode: true
+      });
+
+      receiver__.once('error', function (err) {
+        // console.log('ERROR ON RECEIVER__ ::',err);
+      });
+
+      // This `_write` method is invoked each time a new file is received
+      // from the Readable stream (Upstream) which is pumping filestreams
+      // into this receiver.  (filename === `__newFile.filename`).
+      receiver__._write = function onFile(__newFile, encoding, next) {
+
+        var startedAt = new Date();
+
+        __newFile.once('error', function (err) {
+          // console.log('ERROR ON file read stream in receiver (%s) ::', __newFile.filename, err);
+          // TODO: the upload has been cancelled, so we need to stop writing
+          // all buffered bytes, then call gc() to remove the parts of the file that WERE written.
+          // (caveat: may not need to actually call gc()-- need to see how this is implemented
+          // in the underlying knox-mpu module)
+          //
+          // Skipper core should gc() for us.
+        });
+
+        // Allow `tmpdir` for knox-mpu to be passed in, or default
+        // to `.tmp/s3-upload-part-queue`
+        options.tmpdir = options.tmpdir || path.resolve(process.cwd(), '.tmp/s3-upload-part-queue');
+
+        var headers = options.headers || {};
+
+        // Lookup content type with mime if not set
+        if ('undefined' === typeof headers['content-type']) {
+          headers['content-type'] = mime.lookup(__newFile.fd);
+        }
+
+        var bytesWritten = 0;
+
+        var mpu = new S3MultipartUpload({
+          objectName: __newFile.fd,
+          stream: __newFile,
+          maxUploadSize: bytesRemaining,
+          tmpDir: options.tmpdir,
+          headers: headers,
+          client: knox.createClient({
+            key: options.key,
+            secret: options.secret,
+            bucket: options.bucket,
+            region: globalOpts.region||undefined,
+            endpoint: globalOpts.endpoint||undefined,
+            token: globalOpts.token||undefined
+          })
+        }, function (err, body) {
+          if (err) {
+            // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
+            receiver__.emit('error', err);
+            return;
+          }
+
+          // Reduce the bytes available for upload by the size of the
+          // successfully uploaded file.
+          bytesRemaining -= body.size;
+
+          // Package extra metadata about the S3 response on each file stream
+          // in case we decide we want to use it for something later
+          __newFile.extra = body;
+
+          // console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
+
+          // Set the byteCount on the stream to the size of the file that was persisted.
+          // Skipper uses this value when serializing uploaded file info.
+          __newFile.byteCount = body.size;
+
+          // console.timeEnd('fileupload:'+__newFile.filename);
+          var endedAt = new Date();
+          var duration = ((endedAt - startedAt) / 1000);
+          // console.log('**** S3 upload took '+duration+' seconds...');
+
+          // Indicate that a file was persisted.
+          receiver__.emit('writefile', __newFile);
+
+          next();
+        });
+
+
+        mpu.on('progress', function(data) {
+          var snapshot = new Date();
+          var secondsElapsed = ((snapshot - startedAt) / 1000);
+          var estUploadRate = (data.written/1000) / secondsElapsed;
+          // console.log('Uploading at %dkB/s', estUploadRate);
+          // console.log('Elapsed:',secondsElapsed+'s');
+
+          // console.log('Uploading (%s)..',__newFile.filename, data);
+          receiver__.emit('progress', {
+            name: __newFile.filename,
+            written: data.written,
+            total: bytesWritten += data.written,
+            percent: data.percent
+          });
+        });
+      };
+
+      return receiver__;
+    }
   };
 
   return adapter;
 
-  /**
-   * A simple receiver for Skipper that writes Upstreams to
-   * S3 to the configured bucket at the configured path.
-   *
-   * Includes a garbage-collection mechanism for failed
-   * uploads.
-   *
-   * @param  {Object} options
-   * @return {Stream.Writable}
-   */
-  function S3Receiver (options) {
-    // console.log('`.receive()` was called...');
-    options = options || {};
-    options = _.defaults(options, globalOpts);
-
-    // The max bytes available for uploading starts out as the
-    // max upload limit, and is reduced every time a file
-    // is successfully uploaded.
-    var bytesRemaining = options.maxBytes;
-
-    var receiver__ = Writable({
-      objectMode: true
-    });
-
-    receiver__.once('error', function (err) {
-      // console.log('ERROR ON RECEIVER__ ::',err);
-    });
-
-    // This `_write` method is invoked each time a new file is received
-    // from the Readable stream (Upstream) which is pumping filestreams
-    // into this receiver.  (filename === `__newFile.filename`).
-    receiver__._write = function onFile(__newFile, encoding, next) {
-
-      var startedAt = new Date();
-
-      __newFile.once('error', function (err) {
-        // console.log('ERROR ON file read stream in receiver (%s) ::', __newFile.filename, err);
-        // TODO: the upload has been cancelled, so we need to stop writing
-        // all buffered bytes, then call gc() to remove the parts of the file that WERE written.
-        // (caveat: may not need to actually call gc()-- need to see how this is implemented
-        // in the underlying knox-mpu module)
-        //
-        // Skipper core should gc() for us.
-      });
-
-      // Allow `tmpdir` for knox-mpu to be passed in, or default
-      // to `.tmp/s3-upload-part-queue`
-      options.tmpdir = options.tmpdir || path.resolve(process.cwd(), '.tmp/s3-upload-part-queue');
-
-      var headers = options.headers || {};
-
-      // Lookup content type with mime if not set
-      if ('undefined' === typeof headers['content-type']) {
-        headers['content-type'] = mime.lookup(__newFile.fd);
-      }
-
-      var bytesWritten = 0;
-
-      var mpu = new S3MultipartUpload({
-        objectName: __newFile.fd,
-        stream: __newFile,
-        maxUploadSize: bytesRemaining,
-        tmpDir: options.tmpdir,
-        headers: headers,
-        client: knox.createClient({
-          key: options.key,
-          secret: options.secret,
-          bucket: options.bucket,
-          region: globalOpts.region||undefined,
-          endpoint: globalOpts.endpoint||undefined,
-          token: globalOpts.token||undefined
-        })
-      }, function (err, body) {
-        if (err) {
-          // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
-          receiver__.emit('error', err);
-          return;
-        }
-
-        // Reduce the bytes available for upload by the size of the
-        // successfully uploaded file.
-        bytesRemaining -= body.size;
-
-        // Package extra metadata about the S3 response on each file stream
-        // in case we decide we want to use it for something later
-        __newFile.extra = body;
-
-        // console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
-
-        // Set the byteCount on the stream to the size of the file that was persisted.
-        // Skipper uses this value when serializing uploaded file info.
-        __newFile.byteCount = body.size;
-
-        // console.timeEnd('fileupload:'+__newFile.filename);
-        var endedAt = new Date();
-        var duration = ((endedAt - startedAt) / 1000);
-        // console.log('**** S3 upload took '+duration+' seconds...');
-
-        // Indicate that a file was persisted.
-        receiver__.emit('writefile', __newFile);
-
-        next();
-      });
-
-
-      mpu.on('progress', function(data) {
-        var snapshot = new Date();
-        var secondsElapsed = ((snapshot - startedAt) / 1000);
-        var estUploadRate = (data.written/1000) / secondsElapsed;
-        // console.log('Uploading at %dkB/s', estUploadRate);
-        // console.log('Elapsed:',secondsElapsed+'s');
-
-        // console.log('Uploading (%s)..',__newFile.filename, data);
-        receiver__.emit('progress', {
-          name: __newFile.filename,
-          written: data.written,
-          total: bytesWritten += data.written,
-          percent: data.percent
-        });
-      });
-    };
-
-    return receiver__;
-  }
 
 
 

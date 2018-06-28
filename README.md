@@ -12,7 +12,7 @@ S3 adapter for receiving [upstreams](https://github.com/balderdashy/skipper#what
 $ npm install skipper-s3 --save
 ```
 
-Also make sure you have skipper itself [installed as your body parser](http://beta.sailsjs.org/#/documentation/concepts/Middleware?q=adding-or-overriding-http-middleware).  This is the default configuration in [Sails](https://github.com/balderdashy/sails) as of v0.10.
+Also make sure you have skipper itself [installed as your body parser](http://sailsjs.com/documentation/concepts/Middleware?q=adding-or-overriding-http-middleware).  This is the default configuration in the [Sails framework](https://sailsjs.com).
 
 
 ## Usage
