@@ -3,6 +3,10 @@ var AWS = require('aws-sdk');
 // Based on:
 // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#listObjectsV2-property
 
+// Usage:
+// node experimental-ls.js AWS_KEY AWS_SECRET
+
+
 var optionalPrefix = undefined;
 var optionalMaxKeys = undefined;
 var awsAccessKey = process.argv[2];
@@ -45,3 +49,22 @@ s3.listObjectsV2(s3LsArgins, (err, result)=>{
 
 });//_∏_
 
+
+
+// Or, using adapter:
+// ================================================
+// var adapter = require('./index')({
+//   bucket: bucketName,
+//   region: 'us-west-2',
+//   key: awsAccessKey,
+//   secret: awsSecret,
+// });
+
+// adapter.ls(undefined, (err, results)=>{
+//   if (err) {
+//     console.error('s3 ls error:', err);
+//   } else {
+//     console.log('s3 ls success!', results);
+//   }
+// });//_∏_
+// ================================================

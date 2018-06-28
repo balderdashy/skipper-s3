@@ -3,21 +3,23 @@
  */
 
 var path = require('path');
-var Writable = require('stream').Writable;
-var Transform = require('stream').Transform;
-var concat = require('concat-stream');
-var _ = require('lodash');
-_.defaultsDeep = require('merge-defaults');
-var knox = require('knox');
-var S3MultipartUpload = require('knox-mpu-alt');
-var S3Lister = require('s3-lister');
+var _ = require('@sailshq/lodash');
 var mime = require('mime');
+var AWS = require('aws-sdk');
 
 /**
  * skipper-s3
  *
- * @param  {Object} globalOpts
- * @return {Object}
+ * @param  {Dictionary} globalOpts
+ *         @property {String} key
+ *         @property {String} secret
+ *         @property {String} bucket
+ *
+ * @returns {Dictionary}
+ *         @property {Function} read
+ *         @property {Function} rm
+ *         @property {Function} ls
+ *         @property {Function} receive
  */
 
 module.exports = function SkipperS3 (globalOpts) {
@@ -25,8 +27,7 @@ module.exports = function SkipperS3 (globalOpts) {
 
   // console.log('S3 adapter was instantiated...');
 
-
-  var adapter = {
+  return {
 
     read: function (fd, cb) {
 
@@ -117,70 +118,49 @@ module.exports = function SkipperS3 (globalOpts) {
           })
         .end();
     },
-    ls: function (dirname, cb) {
-      var client = knox.createClient({
-        key: globalOpts.key,
-        secret: globalOpts.secret,
-        bucket: globalOpts.bucket,
-        region: globalOpts.region,
-        endpoint: globalOpts.endpoint,
-        token: globalOpts.token||undefined
-      });
+    ls: function (dirname, done) {
 
-      // TODO: take a look at maxKeys
-      // https://www.npmjs.org/package/s3-lister
-
-      // Allow empty dirname (defaults to `/`)
-      if (!dirname) {
-        prefix='/';
-      }
-      else prefix = dirname;
-
-      // Strip leading slash from dirname to form prefix
+      // Allow empty dirname (defaults to `/`), & strip leading slash
+      // from dirname to form prefix
+      dirname = dirname || '/';
       var prefix = dirname.replace(/^\//, '');
 
-      var lister = new S3Lister(client, {
-        prefix : prefix
-      });
-
-      if (!cb) {
-        return lister;
+      var s3ConstructorArgins = {
+        apiVersion: '2006-03-01',
+        region: globalOpts.region,
+        accessKeyId: globalOpts.key,
+        secretAccessKey: globalOpts.secret,
+        endpoint: globalOpts.endpoint
+      };
+      for (let k in s3ConstructorArgins) {
+        if (s3ConstructorArgins[k] === undefined) {
+          delete s3ConstructorArgins[k];
+        }
       }
-      else {
-        var firedCb;
-        lister.once('error', function (err) {
-          if(firedCb)return;
-          firedCb=true;
-          cb(err);
-        });
-        lister.pipe(concat(function (data) {
-          if(firedCb)return;
-          firedCb=true;
+      var s3 = new AWS.S3(s3ConstructorArgins);
 
-          // Pluck just the "Key" (i.e. file path)
-          // and return only the filename (i.e. snip
-          // off the path prefix)
-          data = _.pluck(data, 'Key');
-          data = _.map(data, function snipPathPrefixes (thisPath) {
-            thisPath = thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
-
-            // Join the dirname with the filename
-            thisPath = path.join(dirname, path.basename(thisPath));
-
-            return thisPath;
-          });
-
-
-
-          // console.log('______ files _______\n', data);
-          cb(null, data);
-        }));
-
-        // TODO: marshal each matched file in the stream
-        // (using a Transform- take a look at all the
-        //  "plucking" and stuff I have going on above ^)
-        return lister;
+      var s3LsArgins = {
+        Bucket: globalOpts.bucket,
+        Prefix: prefix
+      };
+      // ^FUTURE: maybe also check out "MaxKeys"..?
+      for (let k in s3LsArgins) {
+        if (s3LsArgins[k] === undefined) {
+          delete s3LsArgins[k];
+        }
       }
+
+      s3.listObjectsV2(s3LsArgins, (err, result)=>{
+        if (err){ return done(err); }
+
+        var formattedResults;
+        try {
+          formattedResults = _.pluck(result['Contents'], 'Key');
+        } catch (err) { return done(err); }
+
+        return done(undefined, formattedResults);
+      });//_∏_
+
     },
 
     /**
@@ -234,8 +214,8 @@ module.exports = function SkipperS3 (globalOpts) {
 
         var headers = options.headers || {};
 
-        // Lookup content type with mime if not set
-        if ('undefined' === typeof headers['content-type']) {
+        // Attempt to look up content type if not set
+        if (headers['content-type'] === undefined) {
           headers['content-type'] = mime.lookup(__newFile.fd);
         }
 
@@ -308,12 +288,6 @@ module.exports = function SkipperS3 (globalOpts) {
       return receiver__;
     }
   };
-
-  return adapter;
-
-
-
-
 };
 
 
