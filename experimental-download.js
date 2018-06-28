@@ -3,8 +3,8 @@ var AWS = require('aws-sdk');
 // Based on:
 // https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/requests-using-stream-objects.html
 
-var source = 'foo.txt';
-var destination = '/Users/mikermcneil/Desktop/downloaded-foo.txt';
+var source = 'video-downsampled.mov';
+var destination = '/Users/mikermcneil/Desktop/downloaded-video-downsampled.mov';
 var awsAccessKey = process.argv[2];
 var awsSecret = process.argv[3];
 var bucketName = 'experiment-jun28-2018';
@@ -36,9 +36,11 @@ var drain = require('fs').createWriteStream(destination);
 drain.on('error', (err)=>{
   console.error('local filesystem write error:',err);
 });
+drain.on('finish', ()=>{
+  console.log('Download Success!');
+});//_∏_
 
 readable.pipe(drain);
-console.log('Download Success!');
 
 
 // wtf:

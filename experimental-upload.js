@@ -1,6 +1,6 @@
 var AWS = require('aws-sdk');
 
-var source = '/Users/mikermcneil/Desktop/foo.txt';
+var source = '/Users/mikermcneil/Desktop/video-downsampled.mov';
 var awsAccessKey = process.argv[2];
 var awsSecret = process.argv[3];
 var bucketName = 'experiment-jun28-2018';
@@ -17,13 +17,12 @@ var s3 = new AWS.S3({
   secretAccessKey: awsSecret
 });
 
-
 var fileStream = require('fs').createReadStream(source);
 fileStream.on('error', (err)=>{
   console.log('File Error', err);
 });
 
-s3.upload({
+var s3ManagedUpload = s3.upload({
   Bucket: bucketName,
   Key: require('path').basename(source),
   Body: fileStream
@@ -33,6 +32,10 @@ s3.upload({
   } if (data) {
     console.log('Upload Success', data.Location);
   }
-});
+});//_∏_
+
+s3ManagedUpload.on('httpUploadProgress', function (event) {
+  console.log(event.loaded + ' of ' + event.total + ' bytes');
+});//œ
 
 
