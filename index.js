@@ -5,6 +5,7 @@
 var path = require('path');
 var Writable = require('stream').Writable;
 var _ = require('@sailshq/lodash');
+var flaverr = require('flaverr');
 var mime = require('mime');
 var AWS = require('aws-sdk');
 
@@ -96,26 +97,27 @@ module.exports = function SkipperS3 (globalOpts) {
       return __transform__;
     },
 
-    rm: function (fd, cb) {
-      knox.createClient({
-        key: globalOpts.key,
-        secret: globalOpts.secret,
-        bucket: globalOpts.bucket,
-        region: globalOpts.region||undefined,
-        endpoint: globalOpts.endpoint||undefined
-      })
-        .del(fd)
-        .on('response', function (res) {
-            if (res.statusCode === 204) {
-              cb();
-            } else {
-              cb({
-                statusCode: res.statusCode,
-                message: res.body
-              });
+    rm: function (fd, done) {
+      buildS3Client(globalOpts)
+      .deleteObjects(stripKeysWithUndefinedValues({
+        Bucket: globalOpts.bucket,
+        Delete: {
+          Quiet: false,
+          Objects: [
+            {
+              Key: fd
             }
-          })
-        .end();
+          ]
+        }
+      }), (err, result)=>{
+        if (err){ return done(err); }
+
+        if (result && result['Errors'] && result['Errors'].length > 0) {
+          return done(flaverr({raw: result['Errors']}, new Error('Failed to remove some file(s) from S3 (see `.raw`)')));
+        }
+
+        return done(undefined, result);
+      });//_∏_
     },
     ls: function (dirname, done) {
 
