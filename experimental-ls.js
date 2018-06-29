@@ -19,52 +19,52 @@ console.log('Using bucket:', bucketName);
 console.log('Listing files in S3 with optional prefix:', optionalPrefix);
 console.log('Max keys is set to:', optionalMaxKeys);
 
-var s3 = new AWS.S3({
-  apiVersion: '2006-03-01',
-  region: 'us-west-2',
-  accessKeyId: awsAccessKey,
-  secretAccessKey: awsSecret
-});
+// var s3 = new AWS.S3({
+//   apiVersion: '2006-03-01',
+//   region: 'us-west-2',
+//   accessKeyId: awsAccessKey,
+//   secretAccessKey: awsSecret
+// });
 
 
-var s3LsArgins = {
-  Bucket: bucketName,
-  MaxKeys: optionalMaxKeys,
-  Prefix: optionalPrefix
-};
-for (let k in s3LsArgins) {
-  if (s3LsArgins[k] === undefined) {
-    delete s3LsArgins[k];
-  }
-}
+// var s3LsArgins = {
+//   Bucket: bucketName,
+//   MaxKeys: optionalMaxKeys,
+//   Prefix: optionalPrefix
+// };
+// for (let k in s3LsArgins) {
+//   if (s3LsArgins[k] === undefined) {
+//     delete s3LsArgins[k];
+//   }
+// }
 
 
-s3.listObjectsV2(s3LsArgins, (err, result)=>{
-  if (err){
-    console.error('s3 ls error:',err);
-    return;
-  }
+// s3.listObjectsV2(s3LsArgins, (err, result)=>{
+//   if (err){
+//     console.error('s3 ls error:',err);
+//     return;
+//   }
 
-  console.log('s3 ls success!', result['Contents']);
+//   console.log('s3 ls success!', result['Contents']);
 
-});//_∏_
+// });//_∏_
 
 
 
 // Or, using adapter:
 // ================================================
-// var adapter = require('./index')({
-//   bucket: bucketName,
-//   region: 'us-west-2',
-//   key: awsAccessKey,
-//   secret: awsSecret,
-// });
+var adapter = require('./index')({
+  bucket: bucketName,
+  region: 'us-west-2',
+  key: awsAccessKey,
+  secret: awsSecret,
+});
 
-// adapter.ls(undefined, (err, results)=>{
-//   if (err) {
-//     console.error('s3 ls error:', err);
-//   } else {
-//     console.log('s3 ls success!', results);
-//   }
-// });//_∏_
+adapter.ls(undefined, (err, results)=>{
+  if (err) {
+    console.error('s3 ls error:', err);
+  } else {
+    console.log('s3 ls success!', results);
+  }
+});//_∏_
 // ================================================
