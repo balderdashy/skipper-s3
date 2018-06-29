@@ -31,70 +31,19 @@ module.exports = function SkipperS3 (globalOpts) {
 
   return {
 
-    read: function (fd, cb) {
-
-      var client = knox.createClient({
-        key: globalOpts.key,
-        secret: globalOpts.secret,
-        bucket: globalOpts.bucket,
-        region: globalOpts.region||undefined,
-        endpoint: globalOpts.endpoint||undefined,
-        token: globalOpts.token||undefined
-      });
-
-      // Build a noop transform stream that will pump the S3 output through
-      var __transform__ = new Transform();
-      __transform__._transform = function (chunk, encoding, callback) {
-        return callback(null, chunk);
-      };
-
-      client.get(fd).on('response', function(s3res){
-        // Handle explicit s3res errors
-        s3res.once('error', function (err) {
-          __transform__.emit('error', err);
-        });
-
-        // check whether we got an actual file stream:
-        if (s3res.statusCode < 300) {
-          s3res.pipe(__transform__);
-        }
-        // or an error:
-        else {
-          // Wait for the body of the error message to stream in:
-          var body = '';
-          s3res.setEncoding('utf8');
-          s3res.on('readable', function (){
-            var chunk = s3res.read();
-            if (typeof chunk === 'string') body += chunk;
-          });
-          // Then build the error and emit it
-          s3res.once('end', function () {
-            var err = new Error();
-            err.status = s3res.statusCode;
-            err.headers = s3res.headers;
-            err.message = 'Non-200 status code returned from S3 for requested file.';
-            if (body) err.message += ('\n'+body);
-            __transform__.emit('error', err);
-          });
-        }
-      })
-      .end();
-
-      if (cb) {
-        var firedCb;
-        __transform__.once('error', function (err) {
-          if (firedCb) return;
-          firedCb = true;
-          cb(err);
-        });
-        __transform__.pipe(concat(function (data) {
-          if (firedCb) return;
-          firedCb = true;
-          cb(null, data);
-        }));
+    read: function (fd, done) {
+      if (done) {
+        throw new Error('For performance reasons, skipper-s3 does not support using a callback with `.read()`');
       }
 
-      return __transform__;
+      var readable = buildS3Client(globalOpts)
+      .getObject({
+        Bucket: globalOpts.bucket,
+        Key: fd,
+      })
+      .createReadStream();
+
+      return readable;
     },
 
     rm: function (fd, done) {
