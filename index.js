@@ -3,6 +3,7 @@
  */
 
 var path = require('path');
+var Writable = require('stream').Writable;
 var _ = require('@sailshq/lodash');
 var mime = require('mime');
 var AWS = require('aws-sdk');
@@ -31,8 +32,6 @@ module.exports = function SkipperS3 (globalOpts) {
 
     read: function (fd, cb) {
 
-      var prefix = fd;
-
       var client = knox.createClient({
         key: globalOpts.key,
         secret: globalOpts.secret,
@@ -48,7 +47,7 @@ module.exports = function SkipperS3 (globalOpts) {
         return callback(null, chunk);
       };
 
-      client.get(prefix).on('response', function(s3res){
+      client.get(fd).on('response', function(s3res){
         // Handle explicit s3res errors
         s3res.once('error', function (err) {
           __transform__.emit('error', err);
@@ -125,32 +124,12 @@ module.exports = function SkipperS3 (globalOpts) {
       dirname = dirname || '/';
       var prefix = dirname.replace(/^\//, '');
 
-      var s3ConstructorArgins = {
-        apiVersion: '2006-03-01',
-        region: globalOpts.region,
-        accessKeyId: globalOpts.key,
-        secretAccessKey: globalOpts.secret,
-        endpoint: globalOpts.endpoint
-      };
-      for (let k in s3ConstructorArgins) {
-        if (s3ConstructorArgins[k] === undefined) {
-          delete s3ConstructorArgins[k];
-        }
-      }
-      var s3 = new AWS.S3(s3ConstructorArgins);
-
-      var s3LsArgins = {
+      buildS3Client(globalOpts)
+      .listObjectsV2(stripKeysWithUndefinedValues({
         Bucket: globalOpts.bucket,
         Prefix: prefix
-      };
-      // ^FUTURE: maybe also check out "MaxKeys"..?
-      for (let k in s3LsArgins) {
-        if (s3LsArgins[k] === undefined) {
-          delete s3LsArgins[k];
-        }
-      }
-
-      s3.listObjectsV2(s3LsArgins, (err, result)=>{
+        // FUTURE: maybe also check out "MaxKeys"..?
+      }), (err, result)=>{
         if (err){ return done(err); }
 
         var formattedResults;
@@ -291,3 +270,28 @@ module.exports = function SkipperS3 (globalOpts) {
 };
 
 
+//////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * destructive -- mutates, returns reference only for convenience
+ */
+function stripKeysWithUndefinedValues(dictionary) {
+  for (let k in dictionary) {
+    if (dictionary[k] === undefined) {
+      delete dictionary[k];
+    }
+  }
+  return dictionary;
+}//ƒ
+
+function buildS3Client(globalOpts) {
+  var s3ConstructorArgins = stripKeysWithUndefinedValues({
+    apiVersion: '2006-03-01',
+    region: globalOpts.region,
+    accessKeyId: globalOpts.key,
+    secretAccessKey: globalOpts.secret,
+    endpoint: globalOpts.endpoint
+  });
+  return new AWS.S3(s3ConstructorArgins);
+}//ƒ
