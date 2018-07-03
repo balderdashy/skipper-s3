@@ -36,7 +36,7 @@ module.exports = function SkipperS3 (globalOpts) {
         throw new Error('For performance reasons, skipper-s3 does not support using a callback with `.read()`');
       }
 
-      var readable = buildS3Client(globalOpts)
+      var readable = _buildS3Client(globalOpts)
       .getObject({
         Bucket: globalOpts.bucket,
         Key: fd,
@@ -47,8 +47,8 @@ module.exports = function SkipperS3 (globalOpts) {
     },
 
     rm: function (fd, done) {
-      buildS3Client(globalOpts)
-      .deleteObjects(stripKeysWithUndefinedValues({
+      _buildS3Client(globalOpts)
+      .deleteObjects(_stripKeysWithUndefinedValues({
         Bucket: globalOpts.bucket,
         Delete: {
           Quiet: false,
@@ -75,8 +75,8 @@ module.exports = function SkipperS3 (globalOpts) {
       dirname = dirname || '/';
       var prefix = dirname.replace(/^\//, '');
 
-      buildS3Client(globalOpts)
-      .listObjectsV2(stripKeysWithUndefinedValues({
+      _buildS3Client(globalOpts)
+      .listObjectsV2(_stripKeysWithUndefinedValues({
         Bucket: globalOpts.bucket,
         Prefix: prefix
         // FUTURE: maybe also check out "MaxKeys"..?
@@ -227,7 +227,7 @@ module.exports = function SkipperS3 (globalOpts) {
 /**
  * destructive -- mutates, returns reference only for convenience
  */
-function stripKeysWithUndefinedValues(dictionary) {
+function _stripKeysWithUndefinedValues(dictionary) {
   for (let k in dictionary) {
     if (dictionary[k] === undefined) {
       delete dictionary[k];
@@ -236,8 +236,8 @@ function stripKeysWithUndefinedValues(dictionary) {
   return dictionary;
 }//ƒ
 
-function buildS3Client(globalOpts) {
-  var s3ConstructorArgins = stripKeysWithUndefinedValues({
+function _buildS3Client(globalOpts) {
+  var s3ConstructorArgins = _stripKeysWithUndefinedValues({
     apiVersion: '2006-03-01',
     region: globalOpts.region,
     accessKeyId: globalOpts.key,
