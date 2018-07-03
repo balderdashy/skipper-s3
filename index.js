@@ -106,11 +106,11 @@ module.exports = function SkipperS3 (globalOpts) {
       s3ClientOpts = _.extend({}, globalOpts, s3ClientOpts);
 
       var receiver = Writable({ objectMode: true });
-      receiver.once('error', function (unusedErr) {
+      receiver.once('error', (unusedErr)=>{
         // console.log('ERROR ON receiver ::', unusedErr);
       });//œ
 
-      receiver._write = function onFile(incomingFileStream, encoding, proceed) {
+      receiver._write = (incomingFileStream, encoding, proceed)=>{
         incomingFileStream.once('error', (unusedErr)=>{
           // console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
         });//œ
@@ -135,8 +135,9 @@ module.exports = function SkipperS3 (globalOpts) {
 };
 
 
-//////////////////////////////////////////////////////////////////////////////
 
+
+//////////////////////////////////////////////////////////////////////////////
 
 /**
  * destructive -- mutates, returns reference only for convenience
@@ -173,7 +174,7 @@ function _uploadFile(incomingFileStream, onProgress, s3ClientOpts, done) {
     Key: incomingFileStream.fd,
     Body: incomingFileStream,
     ContentType: mime.lookup(incomingFileStream.fd)//« advisory; makes things nicer in the S3 dashboard
-  }), function (err, rawS3ResponseData) {
+  }), (err, rawS3ResponseData)=>{
     if (err && s3ClientOpts.maxBytes && wasMaxBytesQuotaExceeded && flaverr.taste({name: 'RequestAbortedError'}, err)) {
       err = flaverr({code: 'E_EXCEEDS_UPLOAD_LIMIT'}, new Error(`Upload too big!  Exceeded quota ("maxBytes": ${s3ClientOpts.maxBytes})`));
       return done(err);
