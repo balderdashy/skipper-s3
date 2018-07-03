@@ -53,7 +53,7 @@ console.log('Max keys is set to:', optionalMaxKeys);
 
 // Or, using adapter:
 // ================================================
-var adapter = require('./index')({
+var adapter = require('../index')({
   bucket: bucketName,
   region: 'us-west-2',
   key: awsAccessKey,

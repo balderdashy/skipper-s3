@@ -49,7 +49,7 @@ console.log('Deleting file in S3:', source);
 
 // Or, using adapter:
 // ================================================
-var adapter = require('./index')({
+var adapter = require('../index')({
   bucket: bucketName,
   region: 'us-west-2',
   key: awsAccessKey,

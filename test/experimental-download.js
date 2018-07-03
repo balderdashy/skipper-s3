@@ -59,7 +59,7 @@ console.log('Downloading file to:', destination);
 
 // Or, using adapter:
 // ================================================
-var adapter = require('./index')({
+var adapter = require('../index')({
   bucket: bucketName,
   region: 'us-west-2',
   key: awsAccessKey,
