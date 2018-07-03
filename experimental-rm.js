@@ -58,9 +58,9 @@ var adapter = require('./index')({
 
 adapter.rm(source, (err, result)=>{
   if (err) {
-    console.error('s3 ls error:', err);
+    console.error('s3 rm error:', err);
   } else {
-    console.log('s3 ls success!', result);
+    console.log('s3 rm success!', result);
   }
 });//_∏_
 // ================================================
