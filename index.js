@@ -26,8 +26,6 @@ var AWS = require('aws-sdk');
 module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
-  // console.log('S3 adapter was instantiated...');
-
   return {
 
     read: function (fd, done) {
@@ -112,23 +110,13 @@ module.exports = function SkipperS3 (globalOpts) {
         // console.log('ERROR ON receiver ::', unusedErr);
       });//œ
 
-      // This `_write` method is invoked each time a new file is received
-      // from the Readable stream (Upstream) which is pumping filestreams
-      // into this receiver.
       receiver._write = function onFile(incomingFileStream, encoding, proceed) {
-
         incomingFileStream.once('error', (unusedErr)=>{
           // console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
         });//œ
-
         _uploadFile(incomingFileStream, (progressInfo)=>{
           incomingFileStream.byteCount = progressInfo.written;//« used by Skipper core
-          receiver.emit('progress', {
-            name: incomingFileStream.filename || incomingFileStream.fd,
-            written: progressInfo.written,
-            total: progressInfo.total,
-            percent: progressInfo.total ? (progressInfo.written / progressInfo.total) : undefined
-          });
+          receiver.emit('progress', progressInfo);
         }, s3ClientOpts, (err, report)=>{
           if (err) {
             // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
@@ -205,9 +193,13 @@ function _uploadFile(incomingFileStream, onProgress, s3ClientOpts, done) {
       wasMaxBytesQuotaExceeded = true;
       s3ManagedUpload.abort();
     } else if (onProgress) {
+      let written = _.isNumber(event.loaded) ? event.loaded : 0;
+      let total = _.isNumber(event.total) ? event.total : undefined;
       onProgress(_stripKeysWithUndefinedValues({
-        written: _.isNumber(event.loaded) ? event.loaded : 0,
-        total: _.isNumber(event.total) ? event.total : undefined
+        name: incomingFileStream.filename || incomingFileStream.fd,
+        written,
+        total,
+        percent: total ? (written / total) : undefined
       }));
     }//ﬁ
   });//œ
