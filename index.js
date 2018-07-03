@@ -175,7 +175,7 @@ function _uploadFile(incomingFileStream, onProgress, s3ClientOpts, done) {
     ContentType: mime.lookup(incomingFileStream.fd)//« advisory; makes things nicer in the S3 dashboard
   }), function (err, rawS3ResponseData) {
     if (err && s3ClientOpts.maxBytes && wasMaxBytesQuotaExceeded && flaverr.taste({name: 'RequestAbortedError'}, err)) {
-      err = flaverr({code: 'E_EXCEEDS_UPLOAD_LIMIT'}, new Error(`Upload too big!  Exceeded "maxBytes" quota (${s3ClientOpts.maxBytes})`));
+      err = flaverr({code: 'E_EXCEEDS_UPLOAD_LIMIT'}, new Error(`Upload too big!  Exceeded quota ("maxBytes": ${s3ClientOpts.maxBytes})`));
       return done(err);
     } else if (err) {
       return done(err);
