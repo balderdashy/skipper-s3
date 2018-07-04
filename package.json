@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "mocha": "3.0.2",
-    "skipper-adapter-tests": "^1.5.8",
+    "skipper-adapter-tests": "^2.0.0-0",
     "eslint": "4.19.1"
   },
   "engines": {
