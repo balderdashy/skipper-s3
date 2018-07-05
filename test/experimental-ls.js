@@ -7,11 +7,11 @@ var AWS = require('aws-sdk');
 // node experimental-ls.js AWS_KEY AWS_SECRET
 
 
-var optionalPrefix = undefined;
+var optionalPrefix = process.env.PREFIX || undefined;
 var optionalMaxKeys = undefined;
-var awsAccessKey = process.argv[2];
-var awsSecret = process.argv[3];
-var bucketName = 'experiment-jun28-2018';
+var awsAccessKey = process.argv[2] || process.env.KEY;
+var awsSecret = process.argv[3] || process.env.SECRET;
+var bucketName = process.env.BUCKET || 'experiment-jun28-2018';
 
 console.log('Using AWS access key:', awsAccessKey);
 console.log('Using AWS secret:', awsSecret);
@@ -60,7 +60,7 @@ var adapter = require('../index')({
   secret: awsSecret,
 });
 
-adapter.ls(undefined, (err, results)=>{
+adapter.ls(optionalPrefix, (err, results)=>{
   if (err) {
     console.error('s3 ls error:', err);
   } else {

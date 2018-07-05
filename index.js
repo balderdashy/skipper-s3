@@ -28,15 +28,15 @@ module.exports = function SkipperS3 (globalOpts) {
 
   return {
 
-    read: function (fd, done) {
-      if (done) {
-        throw new Error('For performance reasons, skipper-s3 does not support using a callback with `.read()`');
+    read: function (fd) {
+      if (arguments[1]) {
+        throw new Error('For performance reasons, skipper-s3 does not support passing in a callback to `.read()`');
       }
 
       var readable = _buildS3Client(globalOpts)
       .getObject({
         Bucket: globalOpts.bucket,
-        Key: fd,
+        Key: fd.replace(/^\/+/, ''),// « strip leading slashes
       })
       .createReadStream();
 
@@ -51,7 +51,7 @@ module.exports = function SkipperS3 (globalOpts) {
           Quiet: false,
           Objects: [
             {
-              Key: fd
+              Key: fd.replace(/^\/+/, '')// « strip leading slashes
             }
           ]
         }
@@ -70,10 +70,11 @@ module.exports = function SkipperS3 (globalOpts) {
       _buildS3Client(globalOpts)
       .listObjectsV2(_stripKeysWithUndefinedValues({
         Bucket: globalOpts.bucket,
+        // Delimiter: '/',  « doesn't seem to make any meaningful difference
         Prefix: (
-          // Allow empty dirname (defaults to `/`), & strip leading slashes
+          // Allow empty dirname (defaults to ''), & strip leading slashes
           // from dirname to form prefix
-          (dirname || '/').replace(/^\/+/, '')
+          (dirname || '').replace(/^\/+/, '')
         )
         // FUTURE: maybe also check out "MaxKeys"..?
       }), (err, result)=>{
@@ -169,7 +170,7 @@ function _uploadFile(incomingFileStream, onProgress, s3ClientOpts, done) {
   var s3ManagedUpload = _buildS3Client(s3ClientOpts)
   .upload(_stripKeysWithUndefinedValues({
     Bucket: s3ClientOpts.bucket,
-    Key: incomingFileStream.fd,
+    Key: incomingFileStream.fd.replace(/^\/+/, ''),//« remove any leading slashes
     Body: incomingFileStream,
     ContentType: mime.lookup(incomingFileStream.fd)//« advisory; makes things nicer in the S3 dashboard
   }), (err, rawS3ResponseData)=>{
