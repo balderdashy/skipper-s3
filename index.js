@@ -67,16 +67,14 @@ module.exports = function SkipperS3 (globalOpts) {
     },
 
     ls: function (dirname, done) {
-
-      // Allow empty dirname (defaults to `/`), & strip leading slash
-      // from dirname to form prefix
-      dirname = dirname || '/';
-      var prefix = dirname.replace(/^\//, '');
-
       _buildS3Client(globalOpts)
       .listObjectsV2(_stripKeysWithUndefinedValues({
         Bucket: globalOpts.bucket,
-        Prefix: prefix
+        Prefix: (
+          // Allow empty dirname (defaults to `/`), & strip leading slashes
+          // from dirname to form prefix
+          (dirname || '/').replace(/^\/+/, '')
+        )
         // FUTURE: maybe also check out "MaxKeys"..?
       }), (err, result)=>{
         if (err){ return done(err); }
