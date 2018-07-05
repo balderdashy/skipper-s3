@@ -30,7 +30,7 @@ module.exports = function SkipperS3 (globalOpts) {
 
     read: function (fd) {
       if (arguments[1]) {
-        throw new Error('For performance reasons, skipper-s3 does not support passing in a callback to `.read()`');
+        return arguments[1](new Error('For performance reasons, skipper-s3 does not support passing in a callback to `.read()`'));
       }
 
       var readable = _buildS3Client(globalOpts)
