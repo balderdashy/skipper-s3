@@ -115,6 +115,8 @@ module.exports = function SkipperS3 (globalOpts) {
         });//œ
         _uploadFile(incomingFileStream, (progressInfo)=>{
           incomingFileStream.byteCount = progressInfo.written;//« used by Skipper core
+          // TODO: for compatibility: set up upload quota based on total bytes for the entire upstream
+          // ^FUTURE: provide some other way of enforcing quotas on a per-file basis (would need to be changed in skipper core though, too.  And it's a bit of a heavy lift, since them's some complicated codes)
           receiver.emit('progress', progressInfo);
         }, s3ClientOpts, (err, report)=>{
           if (err) {
