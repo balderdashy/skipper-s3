@@ -111,16 +111,18 @@ module.exports = function SkipperS3 (globalOpts) {
 
       var receiver = Writable({ objectMode: true });
       receiver.once('error', (unusedErr)=>{
-        // console.log('ERROR ON receiver ::', unusedErr);
+        console.log('ERROR ON receiver ::', unusedErr);
       });//œ
 
       var bytesWrittenByFd = {};
 
+      console.log('constructed receiver');
       receiver._write = (incomingFileStream, encoding, proceed)=>{
+        console.log('uploading file w/ fd',incomingFileStream.fd);
 
         bytesWrittenByFd[incomingFileStream.fd] = 0;//« bytes written for this file so far
         incomingFileStream.once('error', (unusedErr)=>{
-          // console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
+          console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
         });//œ
         _uploadFile(incomingFileStream, (progressInfo)=>{
           bytesWrittenByFd[incomingFileStream.fd] = progressInfo.written;
@@ -129,6 +131,9 @@ module.exports = function SkipperS3 (globalOpts) {
           for (let fd in bytesWrittenByFd) {
             totalBytesWrittenForThisUpstream += bytesWrittenByFd[fd];
           }//∞
+          console.log('maxBytesPerUpstream',maxBytesPerUpstream);
+          console.log('bytesWrittenByFd',bytesWrittenByFd);
+          console.log('totalBytesWrittenForThisUpstream',totalBytesWrittenForThisUpstream);
           if (maxBytesPerUpstream && totalBytesWrittenForThisUpstream > maxBytesPerUpstream) {
             wasMaxBytesPerUpstreamQuotaExceeded = true;
             return false;
@@ -191,7 +196,7 @@ function _buildS3Client(s3ClientOpts) {
   return new AWS.S3(s3ConstructorArgins);
 }//ƒ
 
-function _uploadFile(incomingFileStream, onProgress, handleProgress, s3ClientOpts, done) {
+function _uploadFile(incomingFileStream, handleProgress, s3ClientOpts, done) {
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property
   var s3ManagedUpload = _buildS3Client(s3ClientOpts)
   .upload(_stripKeysWithUndefinedValues({
@@ -210,6 +215,7 @@ function _uploadFile(incomingFileStream, onProgress, handleProgress, s3ClientOpt
   });//_∏_
 
   s3ManagedUpload.on('httpUploadProgress', (event)=>{
+    console.log('upload progress');
     let written = _.isNumber(event.loaded) ? event.loaded : 0;
     let total = _.isNumber(event.total) ? event.total : undefined;
     let handledSuccessfully = handleProgress(_stripKeysWithUndefinedValues({
