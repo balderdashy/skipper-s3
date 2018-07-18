@@ -141,7 +141,11 @@ module.exports = function SkipperS3 (globalOpts) {
             wasMaxBytesPerFileQuotaExceeded = true;
             return false;
           } else {
-            receiver.emit('progress', progressInfo);
+            if (s3ClientOpts.onProgress) {
+              s3ClientOpts.onProgress(progressInfo);
+            } else {
+              receiver.emit('progress', progressInfo);// « for backwards compatibility
+            }
             return true;
           }
         }, s3ClientOpts, (err)=>{
