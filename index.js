@@ -111,18 +111,18 @@ module.exports = function SkipperS3 (globalOpts) {
 
       var receiver = Writable({ objectMode: true });
       receiver.once('error', (unusedErr)=>{
-        console.log('ERROR ON receiver ::', unusedErr);
+        // console.log('ERROR ON receiver ::', unusedErr);
       });//œ
 
       var bytesWrittenByFd = {};
 
-      console.log('constructed receiver');
+      // console.log('constructed receiver');
       receiver._write = (incomingFileStream, encoding, proceed)=>{
-        console.log('uploading file w/ fd',incomingFileStream.fd);
+        // console.log('uploading file w/ fd',incomingFileStream.fd);
 
         bytesWrittenByFd[incomingFileStream.fd] = 0;//« bytes written for this file so far
         incomingFileStream.once('error', (unusedErr)=>{
-          console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
+          // console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
         });//œ
         _uploadFile(incomingFileStream, (progressInfo)=>{
           bytesWrittenByFd[incomingFileStream.fd] = progressInfo.written;
@@ -131,9 +131,9 @@ module.exports = function SkipperS3 (globalOpts) {
           for (let fd in bytesWrittenByFd) {
             totalBytesWrittenForThisUpstream += bytesWrittenByFd[fd];
           }//∞
-          console.log('maxBytesPerUpstream',maxBytesPerUpstream);
-          console.log('bytesWrittenByFd',bytesWrittenByFd);
-          console.log('totalBytesWrittenForThisUpstream',totalBytesWrittenForThisUpstream);
+          // console.log('maxBytesPerUpstream',maxBytesPerUpstream);
+          // console.log('bytesWrittenByFd',bytesWrittenByFd);
+          // console.log('totalBytesWrittenForThisUpstream',totalBytesWrittenForThisUpstream);
           if (maxBytesPerUpstream && totalBytesWrittenForThisUpstream > maxBytesPerUpstream) {
             wasMaxBytesPerUpstreamQuotaExceeded = true;
             return false;
@@ -150,7 +150,7 @@ module.exports = function SkipperS3 (globalOpts) {
           }
         }, s3ClientOpts, (err)=>{
           if (err) {
-            // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
+            // console.log(('Receiver: Error writing `' + incomingFileStream.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
             if (flaverr.taste({name: 'RequestAbortedError'}, err)) {
               if (maxBytesPerUpstream && wasMaxBytesPerUpstreamQuotaExceeded) {
                 err = flaverr({code: 'E_EXCEEDS_UPLOAD_LIMIT'}, new Error(`Upload too big!  Exceeded quota ("maxBytes": ${maxBytesPerUpstream})`));
@@ -219,7 +219,7 @@ function _uploadFile(incomingFileStream, handleProgress, s3ClientOpts, done) {
   });//_∏_
 
   s3ManagedUpload.on('httpUploadProgress', (event)=>{
-    console.log('upload progress');
+    // console.log('upload progress');
     let written = _.isNumber(event.loaded) ? event.loaded : 0;
     let total = _.isNumber(event.total) ? event.total : undefined;
     let handledSuccessfully = handleProgress(_stripKeysWithUndefinedValues({
