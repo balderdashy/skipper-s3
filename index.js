@@ -119,8 +119,8 @@ module.exports = function SkipperS3 (globalOpts) {
       // console.log('constructed receiver');
       receiver._write = (incomingFileStream, encoding, proceed)=>{
         // console.log('uploading file w/ fd',incomingFileStream.fd);
-        if (!_.isString(incomingFileStream.fd)) {
-          return proceed(new Error('In skipper-s3: Incoming file stream does not have the expected `.fd` property-- at least not as a valid string.  If you are using sails-hook-uploads or skipper directly, this should have been automatically attached!  Here is what we got for `.fd`: '+incomingFileStream.fd));
+        if (!_.isString(incomingFileStream.fd) || incomingFileStream.fd === '') {
+          return proceed(new Error('In skipper-s3: Incoming file stream does not have the expected `.fd` property-- at least not as a valid string.  If you are using sails-hook-uploads or skipper directly, this should have been automatically attached!  Here is what we got for `.fd`: `'+incomingFileStream.fd+'`.  And here is what we got for `.skipperFd`: `'+incomingFileStream.skipperFd+'`'));
         }//•
 
         bytesWrittenByFd[incomingFileStream.fd] = 0;//« bytes written for this file so far
