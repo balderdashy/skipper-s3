@@ -118,17 +118,25 @@ module.exports = function SkipperS3 (globalOpts) {
 
       // console.log('constructed receiver');
       receiver._write = (incomingFileStream, encoding, proceed)=>{
-        // console.log('uploading file w/ fd',incomingFileStream.fd);
-        if (!_.isString(incomingFileStream.fd) || incomingFileStream.fd === '') {
-          return proceed(new Error('In skipper-s3: Incoming file stream does not have the expected `.fd` property-- at least not as a valid string.  If you are using sails-hook-uploads or skipper directly, this should have been automatically attached!  Here is what we got for `.fd`: `'+incomingFileStream.fd+'`.  And here is what we got for `.skipperFd`: `'+incomingFileStream.skipperFd+'`'));
-        }//•
+        // console.log('uploading file w/ skipperFd', incomingFileStream.skipperFd);
 
-        bytesWrittenByFd[incomingFileStream.fd] = 0;//« bytes written for this file so far
+        // Check for `.skipperFd` (or if not present, `.fd`, for backwards compatibility)
+        if (!_.isString(incomingFileStream.skipperFd) || incomingFileStream.skipperFd === '') {
+          if (!_.isString(incomingFileStream.fd) || incomingFileStream.fd === '') {
+            return proceed(new Error('In skipper-s3: Incoming file stream does not have the expected `.skipperFd` or `.fd` properties-- at least not as a valid string.  If you are using sails-hook-uploads or skipper directly, this should have been automatically attached!  Here is what we got for `.fd` (legacy property): `'+incomingFileStream.fd+'`.  And here is what we got for `.skipperFd` (new property): `'+incomingFileStream.skipperFd+'`'));
+          } else {
+            // Backwards compatibility:
+            incomingFileStream.skipperFd = incomingFileStream.fd;
+          }
+        }//ﬁ
+
+        var incomingFd = incomingFileStream.skipperFd;
+        bytesWrittenByFd[incomingFd] = 0;//« bytes written for this file so far
         incomingFileStream.once('error', (unusedErr)=>{
           // console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
         });//œ
-        _uploadFile(incomingFileStream, (progressInfo)=>{
-          bytesWrittenByFd[incomingFileStream.fd] = progressInfo.written;
+        _uploadFile(incomingFd, incomingFileStream, (progressInfo)=>{
+          bytesWrittenByFd[incomingFd] = progressInfo.written;
           incomingFileStream.byteCount = progressInfo.written;//« used by Skipper core
           let totalBytesWrittenForThisUpstream = 0;
           for (let fd in bytesWrittenByFd) {
@@ -140,7 +148,7 @@ module.exports = function SkipperS3 (globalOpts) {
           if (maxBytesPerUpstream && totalBytesWrittenForThisUpstream > maxBytesPerUpstream) {
             wasMaxBytesPerUpstreamQuotaExceeded = true;
             return false;
-          } else if (maxBytesPerFile && bytesWrittenByFd[incomingFileStream.fd] > maxBytesPerFile) {
+          } else if (maxBytesPerFile && bytesWrittenByFd[incomingFd] > maxBytesPerFile) {
             wasMaxBytesPerFileQuotaExceeded = true;
             return false;
           } else {
@@ -163,7 +171,7 @@ module.exports = function SkipperS3 (globalOpts) {
             }//ﬁ
             receiver.emit('error', err);
           } else {
-            incomingFileStream.byteCount = bytesWrittenByFd[incomingFileStream.fd];//« used by Skipper core
+            incomingFileStream.byteCount = bytesWrittenByFd[incomingFd];//« used by Skipper core
             receiver.emit('writefile', incomingFileStream);
             return proceed();
           }
@@ -203,14 +211,14 @@ function _buildS3Client(s3ClientOpts) {
   return new AWS.S3(s3ConstructorArgins);
 }//ƒ
 
-function _uploadFile(incomingFileStream, handleProgress, s3ClientOpts, done) {
+function _uploadFile(incomingFd, incomingFileStream, handleProgress, s3ClientOpts, done) {
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property
   var s3ManagedUpload = _buildS3Client(s3ClientOpts)
   .upload(_stripKeysWithUndefinedValues({
     Bucket: s3ClientOpts.bucket,
-    Key: incomingFileStream.fd.replace(/^\/+/, ''),//« remove any leading slashes
+    Key: incomingFd.replace(/^\/+/, ''),//« remove any leading slashes
     Body: incomingFileStream,
-    ContentType: mime.lookup(incomingFileStream.fd)//« advisory; makes things nicer in the S3 dashboard
+    ContentType: mime.lookup(incomingFd)//« advisory; makes things nicer in the S3 dashboard
   }), (err, rawS3ResponseData)=>{
     if (err) {
       return done(err);
@@ -226,8 +234,8 @@ function _uploadFile(incomingFileStream, handleProgress, s3ClientOpts, done) {
     let written = _.isNumber(event.loaded) ? event.loaded : 0;
     let total = _.isNumber(event.total) ? event.total : undefined;
     let handledSuccessfully = handleProgress(_stripKeysWithUndefinedValues({
-      name: incomingFileStream.filename || incomingFileStream.fd,
-      fd: incomingFileStream.fd,
+      name: incomingFileStream.filename || incomingFd,
+      fd: incomingFd,
       written,
       total,
       percent: total ? (written / total) : undefined
