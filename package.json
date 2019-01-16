@@ -6,7 +6,8 @@
   "scripts": {
     "custom-tests": "node -e \"require('skipper-adapter-tests')({mocha: { timeout: 360000 }, module: require('./'), bucket:process.env.BUCKET || 'skipper-adapter-tests', key: process.env.KEY, secret: process.env.SECRET});\"",
     "lint": "eslint . --max-warnings=0 --ignore-pattern 'test/' && echo '✔  Your code looks good.'",
-    "test": "npm run lint && npm run custom-tests && npm run bench"
+    "test": "npm run lint && npm run custom-tests && npm run bench",
+    "bench": "node -e \"console.log('There are no additional performance benchmarks yet.')\""
   },
   "repository": {
     "type": "git",
