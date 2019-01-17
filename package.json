@@ -1,10 +1,13 @@
 {
   "name": "skipper-s3",
-  "version": "0.5.11",
-  "description": "Streaming file uploads to S3",
+  "version": "0.6.0-7",
+  "description": "Stream file uploads, downloads, and transloads to and from S3.  Plus some other utilities like `rm` and `ls`.",
   "main": "index.js",
   "scripts": {
-    "test": "node -e \"require('skipper-adapter-tests')({mocha: { timeout: 360000 }, module: require('./'), bucket:process.env.BUCKET || 'skipper-adapter-tests', key: process.env.KEY, secret: process.env.SECRET});\""
+    "custom-tests": "node -e \"require('skipper-adapter-tests')({mocha: { timeout: 360000 }, module: require('./'), bucket:process.env.BUCKET || 'skipper-adapter-tests', key: process.env.KEY, secret: process.env.SECRET});\"",
+    "lint": "eslint . --max-warnings=0 --ignore-pattern 'test/' && echo '✔  Your code looks good.'",
+    "test": "npm run lint && npm run custom-tests && npm run bench",
+    "bench": "node -e \"console.log('There are no additional performance benchmarks yet.')\""
   },
   "repository": {
     "type": "git",
@@ -22,21 +25,21 @@
   "author": "Mike McNeil",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/balderdashy/skipper-s3/issues"
+    "url": "https://sailsjs.com/bugs"
   },
   "homepage": "https://github.com/balderdashy/skipper-s3",
-  "devDependencies": {
-    "skipper-adapter-tests": "~1.5.8",
-    "travis-encrypt": "^2.1.1"
-  },
   "dependencies": {
-    "concat-stream": "1.6.0",
-    "fs-extra": "0.30.0",
-    "knox": "0.8.10",
-    "knox-mpu-alt": "0.2.1",
-    "lodash": "3.10.1",
-    "merge-defaults": "0.1.4",
-    "mime": "1.2.11",
-    "s3-lister": "0.1.0"
+    "@sailshq/lodash": "^3.10.2",
+    "aws-sdk": "2.265.1",
+    "flaverr": "^1.9.2",
+    "mime": "1.2.11"
+  },
+  "devDependencies": {
+    "mocha": "3.0.2",
+    "skipper-adapter-tests": "^2.0.0-0",
+    "eslint": "4.19.1"
+  },
+  "engines": {
+    "node": ">=8"
   }
 }

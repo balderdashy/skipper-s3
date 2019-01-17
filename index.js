@@ -2,319 +2,247 @@
  * Module dependencies
  */
 
-var path = require('path');
 var Writable = require('stream').Writable;
-var Transform = require('stream').Transform;
-var concat = require('concat-stream');
-var _ = require('lodash');
-_.defaultsDeep = require('merge-defaults');
-var knox = require('knox');
-var S3MultipartUpload = require('knox-mpu-alt');
-var S3Lister = require('s3-lister');
+var _ = require('@sailshq/lodash');
+var flaverr = require('flaverr');
 var mime = require('mime');
+var AWS = require('aws-sdk');
 
 /**
  * skipper-s3
  *
- * @param  {Object} globalOpts
- * @return {Object}
+ * @param  {Dictionary} globalOpts
+ *         @property {String} key
+ *         @property {String} secret
+ *         @property {String} bucket
+ *
+ * @returns {Dictionary}
+ *         @property {Function} read
+ *         @property {Function} rm
+ *         @property {Function} ls
+ *         @property {Function} receive
  */
 
 module.exports = function SkipperS3 (globalOpts) {
   globalOpts = globalOpts || {};
 
-  // console.log('S3 adapter was instantiated...');
+  return {
 
-
-  var adapter = {
-
-    read: function (fd, cb) {
-
-      var prefix = fd;
-
-      var client = knox.createClient({
-        key: globalOpts.key,
-        secret: globalOpts.secret,
-        bucket: globalOpts.bucket,
-        region: globalOpts.region||undefined,
-        endpoint: globalOpts.endpoint||undefined,
-        token: globalOpts.token||undefined
-      });
-
-      // Build a noop transform stream that will pump the S3 output through
-      var __transform__ = new Transform();
-      __transform__._transform = function (chunk, encoding, callback) {
-        return callback(null, chunk);
-      };
-
-      client.get(prefix).on('response', function(s3res){
-        // Handle explicit s3res errors
-        s3res.once('error', function (err) {
-          __transform__.emit('error', err);
-        });
-
-        // check whether we got an actual file stream:
-        if (s3res.statusCode < 300) {
-          s3res.pipe(__transform__);
-        }
-        // or an error:
-        else {
-          // Wait for the body of the error message to stream in:
-          var body = '';
-          s3res.setEncoding('utf8');
-          s3res.on('readable', function (){
-            var chunk = s3res.read();
-            if (typeof chunk === 'string') body += chunk;
-          });
-          // Then build the error and emit it
-          s3res.once('end', function () {
-            var err = new Error();
-            err.status = s3res.statusCode;
-            err.headers = s3res.headers;
-            err.message = 'Non-200 status code returned from S3 for requested file.';
-            if (body) err.message += ('\n'+body);
-            __transform__.emit('error', err);
-          });
-        }
-      })
-      .end();
-
-      if (cb) {
-        var firedCb;
-        __transform__.once('error', function (err) {
-          if (firedCb) return;
-          firedCb = true;
-          cb(err);
-        });
-        __transform__.pipe(concat(function (data) {
-          if (firedCb) return;
-          firedCb = true;
-          cb(null, data);
-        }));
+    read: function (fd) {
+      if (arguments[1]) {
+        return arguments[1](new Error('For performance reasons, skipper-s3 does not support passing in a callback to `.read()`'));
       }
 
-      return __transform__;
+      var readable = _buildS3Client(globalOpts)
+      .getObject({
+        Bucket: globalOpts.bucket,
+        Key: fd.replace(/^\/+/, ''),// « strip leading slashes
+      })
+      .createReadStream();
+
+      return readable;
     },
 
-    rm: function (fd, cb) {
-      knox.createClient({
-        key: globalOpts.key,
-        secret: globalOpts.secret,
-        bucket: globalOpts.bucket,
-        region: globalOpts.region||undefined,
-        endpoint: globalOpts.endpoint||undefined
-      })
-        .del(fd)
-        .on('response', function (res) {
-            if (res.statusCode === 204) {
-              cb();
-            } else {
-              cb({
-                statusCode: res.statusCode,
-                message: res.body
-              });
+    rm: function (fd, done) {
+      _buildS3Client(globalOpts)
+      .deleteObjects(_stripKeysWithUndefinedValues({
+        Bucket: globalOpts.bucket,
+        Delete: {
+          Quiet: false,
+          Objects: [
+            {
+              Key: fd.replace(/^\/+/, '')// « strip leading slashes
             }
-          })
-        .end();
-    },
-    ls: function (dirname, cb) {
-      var client = knox.createClient({
-        key: globalOpts.key,
-        secret: globalOpts.secret,
-        bucket: globalOpts.bucket,
-        region: globalOpts.region,
-        endpoint: globalOpts.endpoint,
-        token: globalOpts.token||undefined
-      });
+          ]
+        }
+      }), (err, result)=>{
+        if (err){ return done(err); }
 
-      // TODO: take a look at maxKeys
-      // https://www.npmjs.org/package/s3-lister
-
-      // Allow empty dirname (defaults to `/`)
-      if (!dirname) {
-        prefix='/';
-      }
-      else prefix = dirname;
-
-      // Strip leading slash from dirname to form prefix
-      var prefix = dirname.replace(/^\//, '');
-
-      var lister = new S3Lister(client, {
-        prefix : prefix
-      });
-
-      if (!cb) {
-        return lister;
-      }
-      else {
-        var firedCb;
-        lister.once('error', function (err) {
-          if(firedCb)return;
-          firedCb=true;
-          cb(err);
-        });
-        lister.pipe(concat(function (data) {
-          if(firedCb)return;
-          firedCb=true;
-
-          // Pluck just the "Key" (i.e. file path)
-          // and return only the filename (i.e. snip
-          // off the path prefix)
-          data = _.pluck(data, 'Key');
-          data = _.map(data, function snipPathPrefixes (thisPath) {
-            thisPath = thisPath.replace(/^.*[\/]([^\/]*)$/, '$1');
-
-            // Join the dirname with the filename
-            thisPath = path.join(dirname, path.basename(thisPath));
-
-            return thisPath;
-          });
-
-
-
-          // console.log('______ files _______\n', data);
-          cb(null, data);
-        }));
-
-        // TODO: marshal each matched file in the stream
-        // (using a Transform- take a look at all the
-        //  "plucking" and stuff I have going on above ^)
-        return lister;
-      }
-    },
-
-    receive: S3Receiver
-  };
-
-  return adapter;
-
-  /**
-   * A simple receiver for Skipper that writes Upstreams to
-   * S3 to the configured bucket at the configured path.
-   *
-   * Includes a garbage-collection mechanism for failed
-   * uploads.
-   *
-   * @param  {Object} options
-   * @return {Stream.Writable}
-   */
-  function S3Receiver (options) {
-    // console.log('`.receive()` was called...');
-    options = options || {};
-    options = _.defaults(options, globalOpts);
-
-    // The max bytes available for uploading starts out as the
-    // max upload limit, and is reduced every time a file
-    // is successfully uploaded.
-    var bytesRemaining = options.maxBytes;
-
-    var receiver__ = Writable({
-      objectMode: true
-    });
-
-    receiver__.once('error', function (err) {
-      // console.log('ERROR ON RECEIVER__ ::',err);
-    });
-
-    // This `_write` method is invoked each time a new file is received
-    // from the Readable stream (Upstream) which is pumping filestreams
-    // into this receiver.  (filename === `__newFile.filename`).
-    receiver__._write = function onFile(__newFile, encoding, next) {
-
-      var startedAt = new Date();
-
-      __newFile.once('error', function (err) {
-        // console.log('ERROR ON file read stream in receiver (%s) ::', __newFile.filename, err);
-        // TODO: the upload has been cancelled, so we need to stop writing
-        // all buffered bytes, then call gc() to remove the parts of the file that WERE written.
-        // (caveat: may not need to actually call gc()-- need to see how this is implemented
-        // in the underlying knox-mpu module)
-        //
-        // Skipper core should gc() for us.
-      });
-
-      // Allow `tmpdir` for knox-mpu to be passed in, or default
-      // to `.tmp/s3-upload-part-queue`
-      options.tmpdir = options.tmpdir || path.resolve(process.cwd(), '.tmp/s3-upload-part-queue');
-
-      var headers = options.headers || {};
-
-      // Lookup content type with mime if not set
-      if ('undefined' === typeof headers['content-type']) {
-        headers['content-type'] = mime.lookup(__newFile.fd);
-      }
-
-      var bytesWritten = 0;
-
-      var mpu = new S3MultipartUpload({
-        objectName: __newFile.fd,
-        stream: __newFile,
-        maxUploadSize: bytesRemaining,
-        tmpDir: options.tmpdir,
-        headers: headers,
-        client: knox.createClient({
-          key: options.key,
-          secret: options.secret,
-          bucket: options.bucket,
-          region: globalOpts.region||undefined,
-          endpoint: globalOpts.endpoint||undefined,
-          token: globalOpts.token||undefined
-        })
-      }, function (err, body) {
-        if (err) {
-          // console.log(('Receiver: Error writing `' + __newFile.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
-          receiver__.emit('error', err);
-          return;
+        if (result && result['Errors'] && result['Errors'].length > 0) {
+          return done(flaverr({raw: result['Errors']}, new Error('Failed to remove some file(s) from S3 (see `.raw`)')));
         }
 
-        // Reduce the bytes available for upload by the size of the
-        // successfully uploaded file.
-        bytesRemaining -= body.size;
+        return done(undefined, result);
+      });//_∏_
+    },
 
-        // Package extra metadata about the S3 response on each file stream
-        // in case we decide we want to use it for something later
-        __newFile.extra = body;
+    ls: function (dirname, done) {
+      _buildS3Client(globalOpts)
+      .listObjectsV2(_stripKeysWithUndefinedValues({
+        Bucket: globalOpts.bucket,
+        // Delimiter: '/',  « doesn't seem to make any meaningful difference
+        Prefix: (
+          // Allow empty dirname (defaults to ''), & strip leading slashes
+          // from dirname to form prefix
+          (dirname || '').replace(/^\/+/, '')
+        )
+        // FUTURE: maybe also check out "MaxKeys"..?
+      }), (err, result)=>{
+        if (err){ return done(err); }
 
-        // console.log(('Receiver: Finished writing `' + __newFile.filename + '`').grey);
+        var formattedResults;
+        try {
+          formattedResults = _.pluck(result['Contents'], 'Key');
+        } catch (err) { return done(err); }
 
-        // Set the byteCount on the stream to the size of the file that was persisted.
-        // Skipper uses this value when serializing uploaded file info.
-        __newFile.byteCount = body.size;
+        return done(undefined, formattedResults);
+      });//_∏_
 
-        // console.timeEnd('fileupload:'+__newFile.filename);
-        var endedAt = new Date();
-        var duration = ((endedAt - startedAt) / 1000);
-        // console.log('**** S3 upload took '+duration+' seconds...');
+    },
 
-        // Indicate that a file was persisted.
-        receiver__.emit('writefile', __newFile);
+    /**
+     * A simple receiver for Skipper that writes Upstreams to
+     * S3 to the configured bucket at the configured path.
+     *
+     * @param  {Dictionary} s3ClientOpts
+     *         @property {String} fd
+     *         @property {String} bucket
+     *         etc…
+     * @return {Receiver} (a writable stream)
+     */
+    receive: function S3Receiver (s3ClientOpts) {
+      s3ClientOpts = s3ClientOpts || {};
+      s3ClientOpts = _.extend({}, globalOpts, s3ClientOpts);
 
-        next();
-      });
+      var wasMaxBytesPerUpstreamQuotaExceeded;
+      var wasMaxBytesPerFileQuotaExceeded;
+      var maxBytesPerUpstream = s3ClientOpts.maxBytes || undefined;
+      var maxBytesPerFile = s3ClientOpts.maxBytesPerFile || undefined;
 
+      var receiver = Writable({ objectMode: true });
+      receiver.once('error', (unusedErr)=>{
+        // console.log('ERROR ON receiver ::', unusedErr);
+      });//œ
 
-      mpu.on('progress', function(data) {
-        var snapshot = new Date();
-        var secondsElapsed = ((snapshot - startedAt) / 1000);
-        var estUploadRate = (data.written/1000) / secondsElapsed;
-        // console.log('Uploading at %dkB/s', estUploadRate);
-        // console.log('Elapsed:',secondsElapsed+'s');
+      var bytesWrittenByFd = {};
 
-        // console.log('Uploading (%s)..',__newFile.filename, data);
-        receiver__.emit('progress', {
-          name: __newFile.filename,
-          written: data.written,
-          total: bytesWritten += data.written,
-          percent: data.percent
-        });
-      });
-    };
+      // console.log('constructed receiver');
+      receiver._write = (incomingFileStream, encoding, proceed)=>{
+        // console.log('uploading file w/ skipperFd', incomingFileStream.skipperFd);
 
-    return receiver__;
-  }
+        // Check for `.skipperFd` (or if not present, `.fd`, for backwards compatibility)
+        if (!_.isString(incomingFileStream.skipperFd) || incomingFileStream.skipperFd === '') {
+          if (!_.isString(incomingFileStream.fd) || incomingFileStream.fd === '') {
+            return proceed(new Error('In skipper-s3: Incoming file stream does not have the expected `.skipperFd` or `.fd` properties-- at least not as a valid string.  If you are using sails-hook-uploads or skipper directly, this should have been automatically attached!  Here is what we got for `.fd` (legacy property): `'+incomingFileStream.fd+'`.  And here is what we got for `.skipperFd` (new property): `'+incomingFileStream.skipperFd+'`'));
+          } else {
+            // Backwards compatibility:
+            incomingFileStream.skipperFd = incomingFileStream.fd;
+          }
+        }//ﬁ
 
+        var incomingFd = incomingFileStream.skipperFd;
+        bytesWrittenByFd[incomingFd] = 0;//« bytes written for this file so far
+        incomingFileStream.once('error', (unusedErr)=>{
+          // console.log('ERROR ON incoming readable file stream in Skipper S3 adapter (%s) ::', incomingFileStream.filename, unusedErr);
+        });//œ
+        _uploadFile(incomingFd, incomingFileStream, (progressInfo)=>{
+          bytesWrittenByFd[incomingFd] = progressInfo.written;
+          incomingFileStream.byteCount = progressInfo.written;//« used by Skipper core
+          let totalBytesWrittenForThisUpstream = 0;
+          for (let fd in bytesWrittenByFd) {
+            totalBytesWrittenForThisUpstream += bytesWrittenByFd[fd];
+          }//∞
+          // console.log('maxBytesPerUpstream',maxBytesPerUpstream);
+          // console.log('bytesWrittenByFd',bytesWrittenByFd);
+          // console.log('totalBytesWrittenForThisUpstream',totalBytesWrittenForThisUpstream);
+          if (maxBytesPerUpstream && totalBytesWrittenForThisUpstream > maxBytesPerUpstream) {
+            wasMaxBytesPerUpstreamQuotaExceeded = true;
+            return false;
+          } else if (maxBytesPerFile && bytesWrittenByFd[incomingFd] > maxBytesPerFile) {
+            wasMaxBytesPerFileQuotaExceeded = true;
+            return false;
+          } else {
+            if (s3ClientOpts.onProgress) {
+              s3ClientOpts.onProgress(progressInfo);
+            } else {
+              receiver.emit('progress', progressInfo);// « for backwards compatibility
+            }
+            return true;
+          }
+        }, s3ClientOpts, (err)=>{
+          if (err) {
+            // console.log(('Receiver: Error writing `' + incomingFileStream.filename + '`:: ' + require('util').inspect(err) + ' :: Cancelling upload and cleaning up already-written bytes...').red);
+            if (flaverr.taste({name: 'RequestAbortedError'}, err)) {
+              if (maxBytesPerUpstream && wasMaxBytesPerUpstreamQuotaExceeded) {
+                err = flaverr({code: 'E_EXCEEDS_UPLOAD_LIMIT'}, new Error(`Upload too big!  Exceeded quota ("maxBytes": ${maxBytesPerUpstream})`));
+              } else if (maxBytesPerFile && wasMaxBytesPerFileQuotaExceeded) {
+                err = flaverr({code: 'E_EXCEEDS_FILE_SIZE_LIMIT'}, new Error(`One of the attempted file uploads was too big!  Exceeded quota ("maxBytesPerFile": ${maxBytesPerFile})`));
+              }//ﬁ
+            }//ﬁ
+            receiver.emit('error', err);
+          } else {
+            incomingFileStream.byteCount = bytesWrittenByFd[incomingFd];//« used by Skipper core
+            receiver.emit('writefile', incomingFileStream);
+            return proceed();
+          }
+        });//_∏_
+      };//ƒ
 
-
+      return receiver;
+    }
+  };
 };
 
 
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * destructive -- mutates, returns reference only for convenience
+ */
+function _stripKeysWithUndefinedValues(dictionary) {
+  for (let k in dictionary) {
+    if (dictionary[k] === undefined) {
+      delete dictionary[k];
+    }
+  }
+  return dictionary;
+}//ƒ
+
+function _buildS3Client(s3ClientOpts) {
+  var s3ConstructorArgins = _stripKeysWithUndefinedValues({
+    apiVersion: '2006-03-01',
+    region: s3ClientOpts.region,
+    accessKeyId: s3ClientOpts.key,
+    secretAccessKey: s3ClientOpts.secret,
+    endpoint: s3ClientOpts.endpoint
+  });
+  return new AWS.S3(s3ConstructorArgins);
+}//ƒ
+
+function _uploadFile(incomingFd, incomingFileStream, handleProgress, s3ClientOpts, done) {
+  // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property
+  var s3ManagedUpload = _buildS3Client(s3ClientOpts)
+  .upload(_stripKeysWithUndefinedValues({
+    Bucket: s3ClientOpts.bucket,
+    Key: incomingFd.replace(/^\/+/, ''),//« remove any leading slashes
+    Body: incomingFileStream,
+    ContentType: mime.lookup(incomingFd)//« advisory; makes things nicer in the S3 dashboard
+  }), (err, rawS3ResponseData)=>{
+    if (err) {
+      return done(err);
+    } else {
+      return done(undefined, {
+        rawS3ResponseData
+      });
+    }
+  });//_∏_
+
+  s3ManagedUpload.on('httpUploadProgress', (event)=>{
+    // console.log('upload progress');
+    let written = _.isNumber(event.loaded) ? event.loaded : 0;
+    let total = _.isNumber(event.total) ? event.total : undefined;
+    let handledSuccessfully = handleProgress(_stripKeysWithUndefinedValues({
+      name: incomingFileStream.filename || incomingFd,
+      fd: incomingFd,
+      written,
+      total,
+      percent: total ? (written / total) : undefined
+    }));
+    if (!handledSuccessfully) {
+      s3ManagedUpload.abort();
+    }
+  });//œ
+
+}//ƒ
