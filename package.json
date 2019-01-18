@@ -30,7 +30,7 @@
   "homepage": "https://github.com/balderdashy/skipper-s3",
   "dependencies": {
     "@sailshq/lodash": "^3.10.2",
-    "aws-sdk": "2.265.1",
+    "aws-sdk": "2.391.0",
     "flaverr": "^1.9.2",
     "mime": "1.2.11"
   },
