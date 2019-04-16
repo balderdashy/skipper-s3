@@ -32,7 +32,7 @@
     "@sailshq/lodash": "^3.10.2",
     "aws-sdk": "2.391.0",
     "flaverr": "^1.9.2",
-    "mime": "1.2.11"
+    "mime": "2.4.2"
   },
   "devDependencies": {
     "mocha": "3.0.2",
