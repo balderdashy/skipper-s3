@@ -225,6 +225,7 @@ function _uploadFile(incomingFd, incomingFileStream, handleProgress, s3ClientOpt
     if (err) {
       return done(err);
     } else {
+      incomingFileStream.extra = rawS3ResponseData;
       return done(undefined, {
         rawS3ResponseData
       });
