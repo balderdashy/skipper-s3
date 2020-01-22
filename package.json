@@ -1,6 +1,6 @@
 {
   "name": "skipper-s3",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Stream file uploads, downloads, and transloads to and from S3.  Plus some other utilities like `rm` and `ls`.",
   "main": "index.js",
   "scripts": {
