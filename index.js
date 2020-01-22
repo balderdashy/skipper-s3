@@ -206,6 +206,7 @@ function _buildS3Client(s3ClientOpts) {
     region: s3ClientOpts.region,
     accessKeyId: s3ClientOpts.key,
     secretAccessKey: s3ClientOpts.secret,
+    ACL: s3ClientOpts.ACL,
     endpoint: s3ClientOpts.endpoint
   });
   return new AWS.S3(s3ConstructorArgins);
@@ -217,6 +218,7 @@ function _uploadFile(incomingFd, incomingFileStream, handleProgress, s3ClientOpt
   .upload(_stripKeysWithUndefinedValues({
     Bucket: s3ClientOpts.bucket,
     Key: incomingFd.replace(/^\/+/, ''),//« remove any leading slashes
+    ACL: s3ClientOpts.ACL,
     Body: incomingFileStream,
     ContentType: mime.getType(incomingFd)//« advisory; makes things nicer in the S3 dashboard
   }), (err, rawS3ResponseData)=>{
