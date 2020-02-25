@@ -28,6 +28,23 @@ module.exports = function SkipperS3 (globalOpts) {
 
   return {
 
+    /** 
+    * @param {String} operation: 'getObject' || 'putObject' 
+    * 
+    * @param {Dictionary}
+    *   @property {String} Key
+    *   @property {String} Bucket
+    *   @property {Number} Expires - seconds
+    *   @example { Key: '53429b94853c4efb70740eef/3228796d-fe9b-4762-991e-db0d379fedab.jpg', Bucket: 'my-content'}
+    * 
+    * @returns String
+    * 
+    * @docs -> https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#getSignedUrl-property
+    */
+    url: function (operation, params, done) {
+      _buildS3Client(globalOpts).getSignedUrl(operation, params, done);
+    },
+
     read: function (fd) {
       if (arguments[1]) {
         return arguments[1](new Error('For performance reasons, skipper-s3 does not support passing in a callback to `.read()`'));
@@ -206,6 +223,7 @@ function _buildS3Client(s3ClientOpts) {
     region: s3ClientOpts.region,
     accessKeyId: s3ClientOpts.key,
     secretAccessKey: s3ClientOpts.secret,
+    ACL: s3ClientOpts.ACL,
     endpoint: s3ClientOpts.endpoint
   });
   return new AWS.S3(s3ConstructorArgins);
@@ -217,12 +235,14 @@ function _uploadFile(incomingFd, incomingFileStream, handleProgress, s3ClientOpt
   .upload(_stripKeysWithUndefinedValues({
     Bucket: s3ClientOpts.bucket,
     Key: incomingFd.replace(/^\/+/, ''),//« remove any leading slashes
+    ACL: s3ClientOpts.ACL,
     Body: incomingFileStream,
     ContentType: mime.getType(incomingFd)//« advisory; makes things nicer in the S3 dashboard
   }), (err, rawS3ResponseData)=>{
     if (err) {
       return done(err);
     } else {
+      incomingFileStream.extra = rawS3ResponseData;
       return done(undefined, {
         rawS3ResponseData
       });
