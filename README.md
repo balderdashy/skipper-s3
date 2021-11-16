@@ -26,7 +26,8 @@ req.file('avatar')
   secret: 'AB2g1939eaGAdesoccertournament',
   bucket: 'my_stuff',
   // Optional
-  token: 'temporary_sts_creds'
+  token: 'temporary_sts_creds',
+  ACL: 'permission type' // [AWS Access control list](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html)
 }, function whenDone(err, uploadedFiles) {
   if (err) {
     return res.serverError(err);
