@@ -218,7 +218,8 @@ function _uploadFile(incomingFd, incomingFileStream, handleProgress, s3ClientOpt
     Bucket: s3ClientOpts.bucket,
     Key: incomingFd.replace(/^\/+/, ''),//« remove any leading slashes
     Body: incomingFileStream,
-    ContentType: mime.getType(incomingFd)//« advisory; makes things nicer in the S3 dashboard
+    ContentType: mime.getType(incomingFd), //« advisory; makes things nicer in the S3 dashboard,
+    ACL: s3ClientOpts.ACL
   }), (err, rawS3ResponseData)=>{
     if (err) {
       return done(err);
